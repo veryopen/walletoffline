@@ -1,0 +1,207 @@
+body {
+    margin: 0px;
+    background-color: #777;
+}
+
+.container {
+    height: 97vh;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: 80px minmax(300px, max-content) 50px;
+}
+
+/*header中的样式*/
+header {
+    grid-column: span 12;
+    background-color: lightblue;
+} 
+
+.head {
+    width: 66px;
+    height: 66px;
+    position: absolute;
+    top: 5px;
+    border-radius: 50%;
+    box-shadow: -1px -1px 0px #fff, 1px 1px 0px #000;
+    line-height: 66px;
+    text-align: center;
+    font-size: 36px;
+    text-shadow: -1px -1px #444, 1px 1px #aaa;
+    color: #FFF;
+    background-color: #555;
+    z-index: 1;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+/*aside中的样式*/
+aside {
+    grid-column: span 1;
+    background-color: lightsalmon;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0px;
+    margin: 0px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+ul>li {
+    margin-top: 0px;
+    padding: 6px 0px;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+}
+
+ul>li>figure {
+    margin: 0px;
+}
+
+figure>img {
+    box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+}
+
+/*main中的样式*/
+main {
+    grid-column: span 11;
+    background-color: #777;
+    margin-left: 10px;
+    position: relative;
+}
+
+.parent {
+    box-shadow: 0px -1px 2px #eee, 0px 1px 2px #222;
+}
+
+.parent[open]>summary {
+    list-style-image: url("../images/open.png");
+}
+
+.parent>div {
+    background-color: white;
+    padding: 1rem;
+    box-shadow: 0px 2px 2px black inset;
+    transition: max-height 2s ease;
+}
+
+.child>summary {
+    background-color: #333333;
+    padding: 6px 1rem;
+    color: #EEEEEE;
+    margin-bottom: 1px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.child>div {
+    border-left: 1px dotted #DDD;
+    border-right: 1px dotted #DDD;
+    background-color: #FDFDFD;
+    padding: 1rem;
+}
+
+#wallet {
+    height: 660px;
+    background-image: url(../images/wallet.png);
+    /*    background-size: contain;*/
+    background-size: auto 500px;
+    background-repeat: no-repeat;
+    margin: 2rem;
+}
+
+#security {
+    height: 158px;
+    background-image: url(../images/security.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    margin: 2rem 1rem 4rem;
+}
+
+.parent>summary {
+    color: white;
+    padding: 0.5rem 1rem;
+    margin: 4px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    list-style-image: url('../images/close.png');
+    height: 30px;
+}
+
+.help {
+    line-height: 1.7rem;
+    text-indent: 2em;
+    word-wrap: break-word;
+
+}
+
+#deconstruction_table {
+    border-collapse: collapse;
+    width: 51.8rem;
+}
+
+#deconstruction_table>tbody>tr>td {
+    border: 1px solid grey;
+    padding: 4px;
+    word-break: break-all;
+}
+
+.tx_in_delete:hover {
+    outline: #555 1px dotted;
+    border-radius: 50%;
+    padding: 4px;
+}
+
+.txIn, .txOut {
+    background-color: #CCC;
+    width: 320px;
+    border-radius: 10px;
+    box-shadow: 2px 2px;
+    margin-bottom: 10px;
+    font-size: small;
+    padding: 10px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 10px auto;
+}
+
+.txIn>span {
+    display: inline-block;
+    width: 3.4rem;
+    text-align: right;
+}
+
+.signed {
+    width: 2rem;
+    text-align: center;
+    color: white;
+    font-weight: 500;
+    font-size: 1.5rem;
+}
+
+.choosed {
+    text-align: center;
+}
+
+#sign_table th, #sign_table td{
+    border: 1px solid gray;
+}
+.choosed>input {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+/* body.modal-open {
+    overflow: hidden;
+    height: 100vh;
+    position: relative;
+  } */
+
+footer {
+    grid-column: span 12;
+    background-color: lightblue;
+}

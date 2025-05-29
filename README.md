@@ -1,0 +1,1 @@
+This is an offline cryptocurrency wallet. Download it in your computer and browser the index.html file in your firefox bowser.Then you can: 1. Create bitcoin or ethereum wallet; 2. Query wallet address's UTXO or balance; 3. Create and commit transaction at low fee; and etc.

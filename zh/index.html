@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="./styles/common.css" rel="stylesheet">
+    <link href="./styles/ethereum.css" rel="stylesheet">
+    <title>加密币安全交易实战</title>
+
+    <!--1. 比特币js库-->
+    <script src="../js/bitcoinjs-lib.min.js"></script><!--导入bitcoin对象-->
+    <script src="../js/bip32.min.js"></script><!--导入bip32对象-->
+    <script src="../js/bip38.min.js"></script><!--导入bip38对象-->
+    <script src="../js/bip39.min.js"></script><!--导入bip39对象-->
+    <script src="../js/bip84.min.js"></script><!--导入bip84对象-->
+    <script src="../js/wif.min.js"></script><!--导入wif对象-->
+    <script src="../js/ecpair.min.js"></script><!--导入ecpair对象-->
+    <script src="../js/bitcoinerlabsecp256k1.min.js"></script><!--导入bitcoinerlabsecp256k1对象-->
+    <script src="../js/buffer.min.js"></script><!--导入Buffer对象-->
+    <script src="../js/bech32.min.js"></script><!--导入bech32对象-->
+    <script src="../js/bs58check.min.js"></script><!--导入bs58check对象-->
+    <script src="../js/axios.min.js"></script><!--导入axios对象，用于网络资源请求。-->
+    <script src="../js/qrcode.min.js"></script>
+    <!--script src="js/bip-schnorr.min.js"></script--><!--导入bipSchnorr对象，用于Schnorr签名。-->
+    <!--script src="js/tiny-secp256k1.js"></script -->
+
+    <!--2. 以太坊js库-->
+    <script type="module">
+        import { ethers } from "../js/ethers.min.js";
+        window.ethers = ethers;
+        import * as wordlistsExtra from "../js/wordlists-extra.min.js";//LangCz, LangEs, LangFr, LangIt, LangJa, LangKo, LangPt, LangZh
+        window.wordlistsExtra = wordlistsExtra;
+    </script>
+</head>
+
+<body>
+    <select id="select_language"
+        style="text-align: center;border-style: none;background-color: transparent;outline-style: none;position: absolute;right: 10px;top: 4px;border-bottom: 1px solid #999;">
+        <option value="en">English</option>
+        <option value="cn" selected="">简体中文</option>
+    </select>
+
+    <div class="container">
+        <header>
+            <img src="images/logo.png" style="position: absolute;top: 5px;left: 16px;height: 70px;">
+            <!--div class="head" style="left: 100px;">加</div>
+            <div class="head" style="left: 160px;">密</div>
+            <div class="head" style="left: 220px;">币</div>
+            <div class="head" style="left: 280px;">安</div>
+            <div class="head" style="left: 340px;">全</div>
+            <div class="head" style="left: 400px;">交</div>
+            <div class="head" style="left: 460px;">易</div>
+            <div class="head" style="left: 520px;">实</div>
+            <div class="head" style="left: 580px;">战</div -->
+            <div
+                style="position: absolute;left: 100px;font-size: 3.5rem;text-shadow: -1px -1px #eee,1px 1px #555;color: lightblue;font-weight: 600;height: 80px;line-height: 80px;">
+                加密币安全交易</div>
+            <p id="alarm" style="position: absolute;top: 6px;left: 660px;color: red;font-size: 1.2rem;"></p>
+            <img id="choose_network" src="images/config.png"
+                style="position: absolute;top: 2.6rem;right: 4px;width: 40px;" title="配置">
+
+        </header>
+        <aside>
+            <ul>
+                <li style="background-color: #777; border-bottom: 2px solid rgb(255, 255, 255);" data-id="bitcoin_html">
+                    <figure style="background: url(images/current.png) right center no-repeat;">
+                        <img src="images/btc.png">
+                        <figcaption>比特币</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #888;" data-id="ethereum_html">
+                    <figure>
+                        <img src="images/eth.png">
+                        <figcaption>以太币</figcaption>
+                    </figure>
+                </li>
+                <!--li style="background-color: #999;" data-id="lite_html">
+                    <figure>
+                        <img src="images/lte.png">
+                        <figcaption>莱特币(在建…)</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #aaa;" data-id="dog_html">
+                    <figure>
+                        <img src="images/dog.png">
+                        <figcaption>狗狗币(在建…)</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #bbb;" data-id="sol_html">
+                    <figure>
+                        <img src="images/sol.png">
+                        <figcaption>SOL币(在建…)</figcaption>
+                    </figure>
+                </li -->
+                <li style="background-color: #ccc;" data-id="tool_html">
+                    <figure>
+                        <img src="images/tool.png">
+                        <figcaption>小工具</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #EEEEEE;" data-id="help_html">
+                    <figure>
+                        <img src="images/help.png">
+                        <figcaption>帮助</figcaption>
+                    </figure>
+                </li>
+            </ul>
+        </aside>
+        <main>
+            <div id="bitcoin_html" style="visibility: visible;">
+                <details class="parent" id="wallet_management">
+                    <summary>钱包管理</summary>
+                    <div class="window" style="overflow-y: scroll; /*max-height: 0px;*/">
+                        <details class="child">
+                            <summary>新建钱包&恢复钱包</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里可以完成两个任务：<br>（1）新建钱包：输入密码后点击“创建钱包”按钮，当然你也可以不输入密码，但建议你采用密码保护助记词；<br>
+                                        （2）从助记词恢复钱包：输入之前的助记词和密码（如果有），再点击“创建钱包”按钮即可。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        从助记词、种子或根扩展私钥能恢复整个HD钱包，从账户扩展私钥能恢复某个账户中的所有普通钱包，从普通私钥能恢复一个普通钱包。所以说一个HD钱包等价于一个助记词、一个种子或者一个根扩展私钥，
+                                        而一个普通钱包等价于一个普通私钥。根扩展私钥和账户扩展私钥以zprv开头，总长度111个字符，而普通私钥长度50个左右。因此一个HD钱包包含了很多个普通钱包。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">下面的密码输入框以及红色字体部分都可以输入内容。
+                                    </p>
+                                </details>
+                                <hr style="border-top: 1px;border: none;background-color: #bbb;height: 1px;">
+                                <div id="wallet" style="position: relative;">
+                                    <input value="24" id="mnemonic_length" type="number" min="12" max="24" step="3"
+                                        style="width: 50px;text-align: center;color: red;border: none;position: absolute;top: 79px;left: 22px;font-size: 1.5rem;">
+                                    <select id="bitcoin_new_language"
+                                        style="color: red;text-align: center;border-style: none;background-color: transparent;outline-style: none;width: 5rem;position: absolute;left: 166px;top: 7px;">
+                                        <option value="en" selected="">英语</option>
+                                        <option value="cn">简体中文</option>
+                                        <option value="tw">繁体中文</option>
+                                        <option value="ja">日语</option>
+                                        <option value="es">西班牙语</option>
+                                        <option value="fr">法语</option>
+                                        <option value="it">意大利语</option>
+                                        <option value="ko">韩语</option>
+                                        <option value="pt">葡萄牙语</option>
+                                        <option value="cz">捷克语</option>
+                                    </select>
+                                    <textarea id="mnemonic"
+                                        style="position: absolute;top: 70px;left: 120px;width: 220px;height: 130px;border: none;color: red;resize: none"
+                                        placeholder="自动产生的助记词显示在这里，或者在这里输入以前的助记词以便显示钱包信息。"></textarea>
+                                    <input value="" id="seed_password" type="password"
+                                        style="width: 214px;text-align: center;color: red;border: none;position: absolute;top: 90px;left: 360px;">
+                                    <!--select class="path" id="coin_type"
+                                style="position: absolute;top: 116px;left: 530px;color: red;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1.2rem;">
+                                <option value="0" selected>0-比特币</option>
+                                <option value="1">1-测试币</option>
+                                <option value="2" disabled>2-莱特币</option>
+                                <option value="3" disabled>3-狗狗币</option>
+                                <option value="60">60-以太币</option>
+                            </select-->
+                                    <input value="" id="seed"
+                                        style="width: 510px;color: red;border: none;position: absolute;top: 4px;left: 320px;"
+                                        placeholder="种子……">
+                                    <input value="" id="root_privatekey"
+                                        style="width: 552px;color: red;border: none;position: absolute;top: 184px;left: 378px;"
+                                        placeholder="根扩展私钥……">
+                                    <span
+                                        style="position: absolute;top: 110px;left: 860px;font-size: 1.2rem;">m/84'/0'/<input
+                                            class="path" id="path" value="0'/0/0"
+                                            style="width: 8rem;color: red;border: none; font-size: 1.2rem;">
+                                    </span>
+                                    <!--input class="path" value="0" id="address_index"
+                                        style="width: 70px;text-align: center;color: red;border: none;position: absolute;top: 108px;left: 998px;font-size: 1.5rem;"-->
+                                    <button id="new_wallet"
+                                        style="position: absolute; top: 320px; left: 0px; width: 9rem; font-size: 1.5rem; font-weight: 700; color: blue">新建钱包</button>
+                                    <button id="recover_wallet"
+                                        style="position: absolute;top: 364px;left: 0px;width: 9rem;font-size: 1.5rem;font-weight: 700;color: #00bd18;">恢复钱包</button>
+                                    <button id="reset_wallet"
+                                        style="position: absolute;top: 408px;left: 0px;width: 9rem;font-size: 1.5rem;font-weight: 700;/* color: green; */">重新来过</button>
+                                    <button id="view_account_pri"
+                                        style="position: absolute;top: 460px;left: 0px;width: 9rem;font-weight: 700;padding: 10px 0px;"
+                                        disabled>显示更多信息</button>
+                                    <!--button id="other_address"
+                      style="position: absolute;top: 336px;left: 0px;width: 9rem;font-size: 1.5rem;font-weight: 700;color: green;">其他地址</button -->
+                                    <div id="view_wallet"
+                                        style="position: absolute;left: 446px;width: 704px;border: none;top: 270px;height: 230px;word-wrap: break-word;font-size: small;line-height: 1.25rem;">
+                                    </div>
+                                    <!--p id="hd_path"
+                                style="display: block;position: absolute;top: 194px;left: 520px;color: #AAAAAA;">
+                                HD钱包路径：m/84'/0'/0'/0'/0/0</p -->
+                                    <p id="prompt"
+                                        style="position: absolute;top: 490px;left: 530px;color: rgb(217, 15, 15);visibility: visible;">
+                                        务必记住助记词、密码（如果有）和路径。密码不要和助记词放在一起！</p>
+                                    <p id="view_more" style="position: absolute; top: 530px;font-size: small;"></p><br>
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>从私钥导出公钥和钱包地址</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        输入私钥即可导出公钥和各种类型的比特币地址。
+                                    </p>
+                                </details>
+                                <hr>
+                                <input size="70" id="fromWif_wif" placeholder="手工输入或者采用分段法拷贝私钥（WIF格式）……">
+                                <button id="fromWif_button">确定</button>
+                                <table style="margin: 20px 0px;">
+                                    <tr>
+                                        <td colspan="2" style="border-bottom: 1px dotted #999;">1. 各种类型的地址：</td>
+                                    </tr>
+                                    <tr style="line-height: 1.4rem;color: gray;">
+                                        <td style="text-align: right;padding-left: 20px;" id="address_td1"></td>
+                                        <td id="address_td2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">　</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="border-bottom: 1px dotted #999;">2. 各种编码的私钥：</td>
+                                    </tr>
+                                    <tr style="line-height: 1.4rem;color: gray; vertical-align: top;">
+                                        <td style="text-align: right;padding-left: 20px;" id="private_td1"></td>
+                                        <td id="private_td2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">　</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="border-bottom: 1px dotted #999;">3. 各种格式的公钥：</td>
+                                    </tr>
+                                    <tr style="line-height: 1.4rem;color: gray;">
+                                        <td style="text-align: right;padding-left: 20px; vertical-align: top;"
+                                            id="public_td1"></td>
+                                        <td id="public_td2" style="vertical-align: top;"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </details>
+
+                        <details class="child">
+                            <summary>生成多签地址</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里你可以产生P2SH或P2WSH类型的多签地址，也可以产生P2TR类型的路径花费地址，P2TR的密钥花费地址在“新建钱包&恢复钱包”里面生成。
+                                    </p>
+                                </details>
+                                <hr />
+                                <fieldset style="width: 700px;padding: 1rem; border: 1px dotted #AAA">
+                                    <legend style="text-align: center; font-weight: 700">P2SH和P2WSH多签地址</legend>
+                                    <span style="display: block;">输入公钥：</span>
+                                    <textarea style="display: block; word-break: break-all; width: 700px"
+                                        placeholder="请输入参与多签的全部压缩公钥，中间用逗号分隔" rows="5" id="get_multi_address"></textarea>
+                                    <span style="display: block; margin-top: 10px;">赎回脚本（可以修改。注意：公钥必须从小到大排序！）：</span>
+                                    <textarea style="word-break: break-all; width: 670px" placeholder="赎回脚本" rows="5"
+                                        id="get_multi_redeem"></textarea>
+                                    <span style="color: red;writing-mode: vertical-lr;font-size: small;">牢记赎回脚本</span>
+                                    <p>一共有<span id="least_sign">*</span>个公钥，请输入至少签名人数：<input value="2" id="signs"
+                                            type="number" min="1" max="3"
+                                            style="border-style: none; border-bottom: 1px solid;"></p>
+                                    <button id="gen_multi_sign">确定</button>
+                                    <button id="reset_multi_sign">重置</button>
+                                    <button id="multi_sign_help">帮助</button>
+                                    <p id="dis_multi_address"></p>
+                                </fieldset>
+                                <fieldset style="width: 700px;padding: 1rem; border: 1px dotted #AAA; margin-top:2rem;">
+                                    <legend style="text-align: center; font-weight: 700">P2TR密钥和路径花费地址</legend>
+                                    <span style="display: block; margin-top: 10px;">输入内部公钥：</span>
+                                    <input size="95" id="internalPublickey" placeholder="压缩公钥……">
+                                    <span style="display: block; margin-top: 10px;">输入默克尔二叉树：</span>
+                                    <textarea style="word-break: break-all; width: 700px"
+                                        placeholder="格式为[{script1},[[……],{script2}]]，其中“script*”为汇编格式的叶子脚本" rows="16"
+                                        id="get_route_mast"></textarea><br>
+                                    <button id="gen_route_btn">确定</button>
+                                    <button id="reset_route_btn">重置</button>
+                                    <button id="multi_route_help">帮助</button>
+                                    <p id="dis_route_address"></p>
+                                    <fieldset>
+                                        <legend>存在以下几种花钱方法</legend>
+                                        <div id="spend_p2tr_utxo"
+                                            style="width: 42rem;word-break: break-all; font-size: 0.9rem;color: #666;">
+
+                                        </div>
+                                    </fieldset>
+                                </fieldset>
+                            </div>
+                        </details>
+
+                        <details class="child">
+                            <summary>钱包余额、UTXO和交易明细</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里你可以根据钱包地址查询全部的UTXO和总余额，也可以输入交易id号查询某笔交易。
+                                    </p>
+                                </details>
+                                <hr />
+                                <input size="70" id="wallet_address" placeholder="输入钱包地址或者交易id……">
+                                <button id="wallet_balance_btn">查询</button>
+                                <p id="view_wallet_balance"></p>
+                                <table style="font-size: 0.9rem; color: gray;">
+                                    <tbody>
+                                        <tr style="line-height: 1.3rem;">
+                                            <td id="view_wallet_td0"></td>
+                                            <td style="text-align: right; padding-left: 2rem;" id="view_wallet_td1">
+                                            </td>
+                                            <td id="view_wallet_td2"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+
+                    </div>
+                </details>
+                <details class="parent">
+                    <summary>放币交易</summary>
+                    <div class="window" style="overflow-y: scroll;">
+                        <details class="child">
+                            <summary>1. 创建</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        你可在这里发起一个转币交易。交易体中的版本、Marker、锁定事件和Flag一般不用改动，除非你确实知道它们的作用，并且真的需要改成其他值，你就尝试修改，否则建议不要修改。创建交易主要的任务是增加输入和输出，输入就是资金转出方，而输出就是转入方。比特币对美元的汇率是用来计算交易手续费的，比如你愿意支付2美元的手续费，那么按照汇率自动换算成比特币的单位“聪”。交易中的金额都是以聪为单位，1个比特币等于1亿聪。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        交易手续费大概估算方法（单位为美元）：1+输入个数*0.8+输出个数*0.5，例如你构建的交易包含三个输入，两个输出，那么手续费就是1+3*0.8+2*0.5=4.4美元。如果你出的手续费高，成功交易的时间就更短，否则更长，一般的时间都在数小时之内。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        操作步骤：（1）首先手续费（允许修改）。（2）非必要不修改版本、Marker、锁定时间和Flag，除非你理解它们的确切意义，并真的需要修改。（3）添加输入时，输入钱包地址查询可用的UTXO，非必要不修改顺序号和地址类型。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:red;font-size: small;">
+                                        建议你采用浏览器firefox，并且使用浏览器的隐私窗口打开本页面。</p>
+                                </details>
+                                <hr><br>
+                                <p>我愿意为本次交易承担<input id="fee_dollars" value="1"
+                                        style="text-align: center;width: 3rem;border-style: none;border-bottom: 1px solid black;">美元手续费（&nbsp;<b
+                                        id="fee">0</b>&nbsp;聪）。注意：全部输入的金额之和等于全部输出的金额之和加上手续费。
+                                </p>
+                                <fieldset
+                                    style="background: url(images/tx.png) no-repeat #F0F0F0;height: 460px;width: 90rem; position: relative;">
+                                    <legend>交易体</legend>
+                                    <input type="number" min="1" max="3" value="2" id="tx_version"
+                                        style="position: absolute;top: 36px;left: 120px;width: 8.5rem;background-color: transparent;border-style: none;font-size: 1rem;outline-style: none;">
+                                    <input type="number" min="0" max="1" value="0" id="tx_marker"
+                                        style="position: absolute;top: 36px;left: 402px;border-style: none;outline-style: none;background-color: transparent;font-size: 1rem;width: 40px;">
+                                    <input value="0" id="tx_locktime"
+                                        style="position: absolute;top: 68px;left: 120px;background-color: transparent;border-style: none;outline-style: none;font-size: 1rem;width: 8.5rem;">
+                                    <input type="number" min="0" max="1" value="1" id="tx_flag"
+                                        style="position: absolute;top: 68px;left: 402px;width: 40px;border-style: none;background-color: transparent;font-size: 1rem;">
+                                    <fieldset
+                                        style="position: absolute;top: 140px;left: 24px;width: 340px;background-color: white;min-height: 80px"
+                                        id="tx_ins" data-number="0">
+                                        <legend>输入</legend>
+                                        <!--div class="txIn">
+                                交易ID: 466200308696215bbc949d5141a49a4138ecdfdfaa2a8029c1f9bcecd1f96177<br>序号: 1<br>金额:
+                                100000聪
+                                <br><input type="image" src="images/delete.png" title="删除"
+                                    style="float: right; padding: 2px;" class="tx_in_delete">
+                            </div -->
+                                    </fieldset>
+                                    <span
+                                        style="position: absolute;top: 156px;left: 782px;width: 17.5rem;text-align: center;">对方入账：<b
+                                            id="tx_itInput">0</b>聪</span>
+                                    <span
+                                        style="position: absolute;top: 213px;left: 458px;width: 292px;text-align: center;">总金额：<b
+                                            id="tx_amount">0</b>聪</span>
+                                    <span
+                                        style="position: absolute;top: 248px;left: 782px;width: 14.5rem;text-align: center; font-size: 0.85rem">手续费：<b
+                                            id="tx_fee">0</b>聪（<b id="tx_fee_dollar">0</b>美元）</span>
+                                    <span style="position: absolute;top: 269px;left: 840px;color: red;font-size: small;"
+                                        id="tx_fee_alarm">交易手续费过低</span>
+                                    <fieldset
+                                        style="position: absolute;top: 140px;left: 1070px;width: 340px;background-color: white;min-height: 80px"
+                                        id="tx_outs">
+                                        <legend>输出</legend>
+                                    </fieldset>
+                                    <!--button>编码交易体</button-->
+                                </fieldset>
+                                <table style="width: 91.8rem;">
+                                    <tr style="vertical-align: top;">
+                                        <td style="border-right: black 1px solid; padding: 10px; width: 50%;">
+                                            <p style="text-align: center;margin-top: 0px;">增加输入</p>
+                                            <p style="margin-bottom: 0px;">我的钱包地址：</p>
+                                            <input id="tx_me_address" placeholder="输入我的钱包地址……" style="width: 560px;">
+                                            <select class="path" id="tx_me_type"
+                                                style="color: gray;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray; outline-style: none">
+                                                <option value="0">P2PK</option>
+                                                <option value="1">P2PKH</option>
+                                                <option value="2">P2SH</option>
+                                                <option value="3" selected>P2WPKH</option>
+                                                <option value="4">P2WSH</option>
+                                                <option value="5">P2TR</option>
+                                                <option value="6">不明地址</option>
+                                            </select>
+                                            <div id="redeem_script" style="display: none;">
+                                                <p style="margin-bottom: 0px;">赎回脚本：</p>
+                                                <textarea name="redeem" rows="3" cols="87"
+                                                    placeholder="汇编格式的赎回脚本…"></textarea>
+                                            </div>
+                                            <p style="margin-bottom: 0px;">顺序号：</p>
+                                            <input size="7" id="tx_me_sequnce" value="ffffffff"><br>
+                                            <button id="tx_me_utxo" style="margin-top: 8px;">查询UTXO</button><br><br>
+                                            <div id="no_network"
+                                                style="border: 1px solid#BBBBBB;padding: 4px;background-color: #F0F0F0; display: none;">
+                                                <p style="color: red; text-align: center">无法访问互联网，请手工输入UTXO信息</p>
+                                                <span>交易Id：</span><br><input id="manual_txId"
+                                                    placeholder="utxo所在的那个交易的Id…"
+                                                    style="margin-bottom: 1rem; width: 680px"><br>
+                                                <span>输出序号：</span><br><input id="manual_index" size="5"
+                                                    style="margin-bottom: 1rem;"><br>
+                                                <span id="manual_txHex_tips"
+                                                    style="word-break: break-all;">访问……，把结果粘贴在下面：</span><br>
+                                                <textarea id="manual_txHex" cols="85rem"
+                                                    style="min-height: 10rem; width: 680px"
+                                                    placeholder="输入Hex格式的交易串……"></textarea>
+                                                <br><button>添加输入</button>
+                                            </div>
+                                            <table
+                                                style="font-size: 0.9rem; border-collapse: collapse;border:0px;margin: 0 auto;">
+                                                <tbody>
+                                                    <tr>
+                                                        <td colspan="2" id="tx_wallet_balance"
+                                                            style="text-align: center; border-bottom: 1px solid gray;">
+                                                        </td>
+                                                    </tr>
+                                                    <tr style="vertical-align: top;line-height: 1.5rem;color: #666;">
+                                                        <td id="tx_utxo_td0"
+                                                            style="text-align: right;border-right: 1px dotted #BBB;">
+                                                        </td>
+                                                        <td id="tx_utxo_td1"></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                        <td style="padding: 10px;">
+                                            <p style="margin-top: 0px; text-align: center;">增加输出</p>
+                                            <p style="margin-bottom: 0px;">对方的钱包地址</p>
+                                            <input id="tx_he_address" placeholder="输入对方的钱包地址……" style="width: 560px;">
+                                            <select class="path" id="tx_he_type"
+                                                style="color: gray;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray; outline-style:none">
+                                                <option value="0">P2PK</option>
+                                                <option value="1">P2PKH</option>
+                                                <option value="2">P2SH</option>
+                                                <option value="3" selected>P2WPKH</option>
+                                                <option value="4">P2WSH</option>
+                                                <option value="5">P2TR</option>
+                                                <option value="6">OP_RETURN</option>
+                                                <option value="7" style="color: red">Invalid</option>
+                                            </select><br>
+                                            <div id="op_return_data" style="display: none;">
+                                                <p style="margin-bottom: 0px;">要在区块链上存储的内容：</p>
+                                                <textarea id="op_data" rows="3" cols="87"
+                                                    placeholder="不能超过80个字节（至多26个汉字）…"></textarea>
+                                                <br><span>字节数：</span>
+                                            </div>
+                                            <p style="margin-bottom: 0px;">入账金额：</p>
+                                            <input id="tx_he_amount">聪<br>
+                                            <button id="tx_he_output" style="margin-top: 8px;">添加输出</button>
+
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>2. 签名</summary>
+                            <div style="position: relative;">
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        由于签名需要用到私钥，为了确保私钥绝对安全，建议断掉网络，拷贝私钥时建议分段拷贝。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        操作说明：（1）点击“导入输入”按钮导入上1步添加的输入；（2）勾选需要签名的输入；（3）输入私钥。注意：一个私钥可以一次签名多个输入，一个输入允许被不同的私钥多次签名。所有的输入都要被签名。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:red;font-size: small;">
+                                        由于签名需要用到私钥，强烈建议你这样做：使用firefox浏览器，并且使用浏览器的隐私窗口打开本页面，签名前必须让浏览器进入脱机工作模式。如果你不知道操作，请浏览下面的“获取帮助”。
+                                    </p>
+                                </details>
+                                <hr>
+                                <button id="import_input">导入输入</button>
+                                <!--fieldset style="width: 700px;">
+                                <legend>输入签名</legend-->
+                                <table id="sign_table" style="border-collapse: collapse;margin: 2rem 0px;">
+                                    <caption style="font-size: 1.3rem; font-weight: 700;">签名表</caption>
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="width:360px">输入</th>
+                                            <th colspan="10">签名状态</th>
+                                            <th rowspan="2" style="width: 3rem">选择</th>
+                                        </tr>
+                                        <tr>
+                                            <th>1</th>
+                                            <th>2</th>
+                                            <th>3</th>
+                                            <th>4</th>
+                                            <th>5</th>
+                                            <th>6</th>
+                                            <th>7</th>
+                                            <th>8</th>
+                                            <th>9</th>
+                                            <th>10</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!--tr>
+                                        <td>
+                                        </td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="signed">√</td>
+                                        <td class="choosed"><input type="checkbox" name="tx_signs" value="0"></td>
+                                    </tr -->
+                                    </tbody>
+                                </table>
+                                <!--/fieldset-->
+                                <div style="position: relative; width:688px;margin: 1rem 0;">
+                                    <span>签名类型：</span>
+                                    <select class="path" id="sign_type"
+                                        style="color: gray;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray;">
+                                        <option value="0x01" selected>SIGHASH_ALL</option>
+                                        <option value="0x02">SIGHASH_NONE</option>
+                                        <option value="0x03">SIGHASH_SINGLE</option>
+                                        <option value="0x81">SIGHASH_ALL | SIGHASH_ANYONECANPAY</option>
+                                        <option value="0x82">SIGHASH_NONE | SIGHASH_ANYONECANPAY</option>
+                                        <option value="0x83">SIGHASH_SINGLE | SIGHASH_ANYONECANPAY</option>
+                                    </select><br>
+                                    <p style="margin-bottom: 0px;">输入私钥（WIF格式或被密码保护的私钥)：</p>
+                                    <span>
+                                        <input size="76" id="tx_private" type="password" placeholder="输入私钥……">
+                                        <img src="images/closeeye.png" id="private_eye">
+                                    </span>
+                                    <p style="margin-bottom: 0px;">如果私钥被密码保护，请输入保护密码：</p>
+                                    <span>
+                                        <input id="tx_password" size="30" type="password" placeholder="私钥保护密码…">
+                                        <img src="images/closeeye.png"
+                                            id="password_eye">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        N:<input id="N_sign" value="16384" style="width:4rem">&nbsp;&nbsp;&nbsp;r:<input
+                                            id="r_sign" style="width: 2rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;p:<input
+                                            id="p_sign" style="width:2rem" value="8">
+                                    </span>
+                                    <div style="border-bottom: 1px solid #CCC;margin-bottom: 4px;"></div>
+                                    <button id="tx_delete_sign" style="float: right;margin-left: 4px;">删除签名</button>
+                                    <button id="tx_sign" style="float: right;" data-id="0">签名</button>
+                                </div>
+                                <div style="position: absolute;width: calc(100% - 2rem);height: calc(100% - 230px);z-index: 100;top: 230px;background-color: rgba(255, 255, 255, 0.7); visibility: hidden"
+                                    id="sign_cover">
+                                    <p
+                                        style="font-size: 4rem;color: rgba(255,20,20,0.5);text-align: center;margin-top: 12%;text-shadow: -1px -1px #DDD, 1px 1px #333;">
+                                        浏览器处于非脱机工作模式，不能签名！</p>
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>3. 编码</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        将交易体转化为hex格式的交易，以便后续发布交易！
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">操作说明：直接点击“输出Hex格式”按钮即可
+                                    </p>
+                                </details>
+                                <hr>
+                                <button id="output_tx_hex" style="margin: 10px 0px 4px;">输出Hex格式</button>
+                                <div id="tx_hex"
+                                    style="width: 50rem; border: 1px solid gray; background-color: white;word-break: break-all;padding: 0.5rem;font-family: math;color: #666666; min-height: 3rem;">
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>4. 验证</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里将Hex格式的交易串解构成交易体，然后可检查交易的各个字段，对方地址、入账金额、输出脚本以及交易手续费是检查的重点。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        操作说明：默认已经将第3步生成的Hex格式的交易串导入，你也可以单独输入。</p>
+                                </details>
+                                <hr>
+                                <br><span>Hex格式交易串：</span><br>
+                                <textarea id="txHex_edit" cols="100rem" style="min-height: 14rem;"
+                                    placeholder="输入Hex格式的交易串……"></textarea><br>
+                                <button id="deconstruction_tx">解构</button>
+                                <p>或者直接去这些网站解构Hex交易串：</p>
+                                比特币主网：<a href="https://live.blockcypher.com/btc/decodetx/"
+                                    target="_blank">https://live.blockcypher.com/btc/decodetx/</a><br>
+                                比特币测试网：<a href="https://live.blockcypher.com/btc-testnet/decodetx/"
+                                    target="_blank">https://live.blockcypher.com/btc-testnet/decodetx/</a><br>
+
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>5. 发布</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里将Hex格式的交易发布到网上，然后矿工会接受并打包上链，交易时间在数分钟、数小时之内，也可能失败，这要根据你出的交易费而定，交易费越高交易完成越快。另外交易即使上链了，也不能百分之百保证已经可靠入账，需要等大概再产生5、6个区块才表明资金确实可靠入账，所以时间需要两个小时才行。
+                                    </p>
+                                    <p style="color: rgb(238, 89, 89);font-size: small;">
+                                        发布交易有两种方法：一是直接点击“发布”按钮发布，二是在下面公布的其他网站上发布。</p>
+                                </details>
+                                <hr><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; position:relative" id="tx_raw_copy">
+                                    <legend>交易Hex原始码</legend>
+                                    <p id="dispatch_raw_hex" contenteditable="true"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                    </p>
+                                    <!--textarea id="dispatch_raw_hex" rows="8"
+                                    style="word-break: break-all;font-family: math;color: #666666;margin: 4px; width:98%">
+                                </textarea-->
+                                    <input type="image" src="images/copy.png" title='拷贝'
+                                        style="position:absolute;top: -10px;right: 1px;width: 20px;padding: 2px; visibility: hidden;">
+                                    <span
+                                        style="position: absolute;top: -8px;font-size: small;right: -20px;background-color: black;color: white;border-radius: 8px;padding: 1px; visibility: hidden;">已成功拷贝</span>
+                                </fieldset>
+                                <button id="dispatch_tx" style="margin: 4px 0px 1rem;">发布</button><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; visibility:hidden">
+                                    <legend>发布结果</legend>
+                                    <p id="dispatch_result"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                    </p>
+                                </fieldset>
+
+                                <p>或者直接去这些网站发布交易：</p>
+                                <fieldset>
+                                    <legend>比特币主网</legend>
+                                    <a href="https://blockchair.com/broadcast"
+                                        target="_blank">https://blockchair.com/broadcast</a><br>
+                                    <a href="https://live.blockcypher.com/btc/pushtx/"
+                                        target="_blank">https://live.blockcypher.com/btc/pushtx/</a><br>
+                                    <a href="https://www.blockchain.com/btc/pushtx"
+                                        target="_blank">https://www.blockchain.com/btc/pushtx</a>
+                                </fieldset><br>
+                                <fieldset>
+                                    <legend>比特币测试网</legend>
+                                    <a href="https://mempool.space/testnet4/tx/push"
+                                        target="_blank">https://mempool.space/testnet4/tx/push</a><br>
+                                    操作系统命令：curl -d '{"hex":"YOUR_RAW_TX_HEX"}' https://blockstream.info/testnet/api/tx
+                                </fieldset>
+
+                            </div>
+                        </details>
+                    </div>
+                </details>
+                <!--details class="parent">
+                <summary>发布交易</summary>
+                <div class="window" style="overflow-y: scroll; max-height: 0px;">
+                    <p>正在加班加点写代码……</p>
+                    <img src="images/doing.gif">
+                </div>
+            </details -->
+            </div>
+            <div id="ethereum_html" style="position: absolute; top: 0px; width: 100%; visibility: hidden;">
+                <details class="parent" id="ethereum_wallet_management">
+                    <summary>钱包管理</summary>
+                    <div class="window" style="overflow-y: scroll; /*max-height: 0px;*/">
+                        <details class="child">
+                            <summary>新建钱包&恢复钱包</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里管理以太币钱包。相同的助记词如果密码不同，则会产生不同的以太币钱包。可以从助记词恢复HD钱包，也可以从已有的私钥（不管是被密码保护的私钥还是未保护的私钥）导出公钥和地址。<br>
+                                        1.
+                                        如果要新建钱包，首先确定助记词个数（最少12个，最多24个，助记词越多越不容易被猜出）和助记词使用的语言（比如英语助记词、简体中文助记词等）。“助记词”+“助记词保护密码”可以导出大量的私钥（一个私钥对应一个钱包）。密码不同，即使助记词相同，那么导出的私钥也不同，所以建议使用密码来保护助记词。“钱包路径”为形如“m/44'/60'/i'/0/j…”的字符串，表示第i+1个账户里的第j+1个钱包，
+                                        i和j都是大于或等于0的整数，你只能改变i和j，或者增加长度。例如默认路径“m/44'/60'/0'/0/0”表示第1个账户里的第1个钱包，“m/44'/60'/0'/0/5”表示第1个账户里的第6个钱包，“m/44'/60'/3'/0/2”表示第4个账户里的第3个钱包，“m/44'/60'/2'/0/1/3”表示第3个账户里的第2个节点下的第4个子钱包。不过建议钱包路径不要太长太复杂，否则容易搞错或忘记。<br>
+                                        如果输入了私钥保护密码，那么最终的私钥被加密保护，以后签名时使用被密码保护的私钥时需要输入这个私钥保护密码，不要忘记了。
+                                        2.
+                                        如果要恢复钱包，有两种方法，一种方法是从“助记词语言”、“助记词”、“助记词保护密码”和“钱包路径”恢复，只要输入以前产生钱包时的语言、助记词、助记词保护密码和钱包路径即可恢复全部的私钥；第二种方法是从私钥恢复钱包地址，即输入一个私钥即可，如果私钥被加密保护，还需输入私钥保护密码。
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:red;font-size: small;">
+                                        创建的钱包如果你打算正式使用，一定要牢记助记词、助记词保护密码（如果有的话）、钱包路径、私钥、地址，私钥建议进一步加密保护（在“钱包管理”》“私钥保护”页操作）。地址公布给其他人，以便他人往此地址放币，其他任何信息绝对不要外泄。
+                                    </p>
+                                </details>
+                                <hr style="border-top: 1px;border: none;background-color: #bbb;height: 1px;"><br>
+                                　　助记词数量：<input value="24" id="ethereum_mnemonic_length" type="number" min="12" max="24"
+                                    step="3"
+                                    style="width: 50px;text-align: center;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                                　　助记词语言：<select id="ethereum_new_language"
+                                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:6rem;">
+                                    <option value="en" selected="">英语</option>
+                                    <option value="cn">简体中文</option>
+                                    <option value="tw">繁体中文</option>
+                                    <option value="ja">日语</option>
+                                    <option value="es">西班牙语</option>
+                                    <option value="fr">法语</option>
+                                    <option value="it">意大利语</option>
+                                    <option value="ko">韩语</option>
+                                    <option value="pt">葡萄牙语</option>
+                                    <option value="cz">捷克语</option>
+                                </select><br>
+                                <p>　　　　助记词：<textarea id="ethereum_mnemonic"
+                                        style="width: 59rem;border: 1px dotted #DDD;border-bottom: 1px solid #888;color: green;outline-style: none;"
+                                        placeholder="自动产生的助记词显示在这里，或者在这里输入以前的助记词以便显示钱包信息。"></textarea>
+                                </p>
+                                <span>助记词保护密码：
+                                    <input value="" id="ethereum_password" type="password"
+                                        style="width: 198px;border: none;border-bottom: 1px solid #888; color: green;outline-style: none;">
+                                    <img src="images/closeeye.png" id="ethereum_mnemonic_password_eye"
+                                        style="width: 16px;">
+                                </span><br>
+                                <p>　　　钱包路径：<input id="ethereum_new_path" value="m/44'/60'/0'/0/0"
+                                        style="width: 10rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;">　（说明：路径m/44'/60'/i'/0/j表示第i+1个账户里的第j+1个钱包，i,j=0、1、2、…）
+                                </p>
+                                <p>　　　　　私钥：<input id="ethereum_new_privatekey"
+                                        style="width: 26rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password">
+                                    <span>　私钥保护密码：
+                                        <input id="ethereum_new_private_password"
+                                            style="width: 11rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                            type="password">
+                                        <img src="images/closeeye.png" id="ethereum_new_password_eye"
+                                            style="width: 16px;">
+                                    </span>
+                                </p><br>
+                                <p style="width: 68rem;text-align: center;">
+                                    <button id="ethereum_new_wallet">新建以太币钱包</button>
+                                    <button id="ethereum_recover_wallet">恢复以太币钱包</button>
+                                    <button id="ethereum_reset_wallet">从新来过</button>
+                                </p>
+                                <span>以太币钱包如下：</span><br>
+                                <div id="ethereum_hd_wallet"
+                                    style="width: 66rem;border: 1px solid #999;padding: 1rem; "></div>
+
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>钱包余额&交易明细</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里你可以查询以太币钱包余额，也可以输入交易id号查询某笔交易。</p>
+                                </details>
+                                <hr />
+                                <input size="70" id="ethereum_wallet_address" placeholder="输入钱包地址或者交易id……">
+                                <button id="ethereum_wallet_balance_btn">查询</button>
+                                <p id="ethereum_view_wallet_balance"></p>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+                <details class="parent">
+                    <summary>放币交易</summary>
+                    <div class="window" style="overflow-y: scroll;">
+                        <details class="child">
+                            <summary>1. 创建</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        “转入钱包地址”就是以太币转入的钱包地址，形如“0xB8309ea73A7C61599bF33C73085D24511E042b06”。<br>“转账金额”就是转账多少个以太币，如0.005个以太币，也可以为0个以太币（这时只想把信息保存在备注中）。<br>“交易费用”就是本次转账你愿意承担多少美元的手续费，最终会从转出钱包中扣除等值的以太币。手续费与转账金额没关系，但与“备注”有关联，如果没有备注，一笔交易手续费一般是5美元上下，手续费越高越快完成交易，当然如果低于1美元，交易时间比较长甚至失败。<br>
+                                        “钱包私钥”就是资金转出钱包的私钥，用来签名。明文私钥形如0x6b714fb46b3558192193712dd9dacabd0e29f75b02c81e21d4fc675f9d50719a，加了密的私钥形如6PYK8XSffZBgqqCMX2METG2VXUdAX5EfMDnCAV6D66B2dWQzdF4Za9Yspr。<br>
+                                        “私钥密码”用来解密私钥的，如果你的私钥被加密，必须输入密码以便解密私钥，否则“私钥密码”不要输。<br>“流水号”就是转出钱包目前是第几次转出以太币，新钱包第1次转出以太币时，流水号为0，第2次为1，以此类推。如果网络通畅，流水号会自动获得，否则必须手工输入，而且不能输错。可以去其他第三方网站查询钱包的流水号。<br>
+                                        “交易类型”默认是2（EIP-1559），这是目前使用最广泛的，交易费用低，除非你彻底了解“交易类型”的真实含义且必须修改，否则不要轻易改动。<br>“油耗上限”默认是21000，如果你增加了备注内容，必须上调油耗上限，否则矿工会忽略此交易。<br>“给矿工的小费”是2号交易类型特有的，小费包含在“交易费用”之中，即你愿意从交易费用之中分出多少作为给矿工的小费。交易费用减去小费的差会转入0地址（0x0000000000000000000000000000000000000000），这个地址的以太币是永远无法转出的，这样相当于销毁了以太币，从而减少流通量。
+                                        一般小费占到交易费用的九成以上。小费是给矿工的，所以小费越多越能激励矿工尽快处理你的交易。<br>“备注”最多可输入7000个汉字，如果你想在区块链上永久保存信息，就输入到备注，字数越多，交易费用就越高，几十上百元的交易费都有可能。
+                                    </p>
+                                </details>
+                                <hr />
+                                <br>转入钱包地址：<input id="ethereum_to"
+                                    style="width: 22rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="转入钱包的地址..."><br>
+                                　　转账金额：<input id="ethereum_value"
+                                    style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="转账多少个以太币...">个以太币<br>
+                                <!--　　参考汇率：<input id="ethereum_rate"
+                                    style="width: 9rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="1以太币兑换多少美元">美元<br>-->
+                                　　钱包私钥：<input id="ethereum_privateKey"
+                                    style="width: 22rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password">　私钥密码：<span><input id="ethereum_private_password"
+                                        style="width: 11rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password"><img src="images/closeeye.png" id="ethereum_password_eye"
+                                        style="width: 16px;"></span><br>
+                                　　　流水号：<input id="ethereum_nonce" value="-1" disabled
+                                    style="width: 3rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="第几次转出"><br>
+                                　　交易类型：<select class="path" id="ethereum_tx_type"
+                                    style="color: green;width: 110px;border: none;background-color: transparent;border-bottom: 1px solid gray; outline-style: none">
+                                    <option value="0">0 (Legacy)</option>
+                                    <option value="1">1 (EIP-2930)</option>
+                                    <option value="2" selected="">2 (EIP-1559)</option>
+                                    <option value="3">3 (EIP-4844)</option>
+                                </select>（非必要不修改）<br>
+                                　　油耗上限：<input id="ethereum_gasLimit" value="21000"
+                                    style="width: 5rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br>
+                                　　交易费用：<input id="ethereum_fee" value="5"
+                                    style="width: 5rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="多少美元...">美元<br>
+                                <span>给矿工的小费：<input id="ethereum_priority_fee" value="4.9"
+                                        style="width: 5rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        placeholder="多少美元...">美元（小费包含在交易费用里面）<br></span>
+                                　　　　备注：<textarea id="ethereum_data" rows="5"
+                                    style="width: 40rem;border: none;border-bottom: 1px solid #888;border-top: 1px dotted #CCC;border-left: 1px dotted #CCC;border-right: 1px dotted #CCC;color: green;outline-style: none;margin-top: 4px;"
+                                    placeholder="保存在区块上的信息，最多7000个汉字，字数越多交易费越贵"></textarea><br>
+                                <p style="width: 47rem;text-align: right;">
+                                    <button id="ethereum_ok_transfer"
+                                        style="padding: 0px 1rem;background-color: gold;">转账</button>&nbsp;
+                                    <button id="ethereum_reset_transfer"
+                                        style="padding: 0px 1rem;background-color: greenyellow;">清除</button>
+                                </p>
+                                <span>转账结果如下：</span><br>
+                                <div id="ethereum_result_transfer"
+                                    style="width: 45rem;border: 1px solid #999;padding: 1rem; word-break: break-all;">
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>2. 发布</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        在这里将Hex格式的交易发布到网上，然后矿工会接受并打包上链，交易时间在1分钟内完成，也可能失败，这要根据你出的交易费而定，交易费越高交易完成越快。另外交易即使上链了，也不能百分之百保证已经可靠入账，需要等大概再产生5、6个区块才表明资金确实可靠入账，所以时间可能需要数分钟。发布交易有两种方法：一是直接粘贴hex格式的交易码到输入框中，然后点击“发布”按钮发布，二是在下面公布的地三放网站上发布。<br>
+                                        不过建议在正式发布前，点击“解码”按钮后再三检查确认各个字段，尤其是对方地址和转账金额以及交易费。
+                                    </p>
+                                </details>
+                                <hr><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; position:relative"
+                                    id="ethereum_tx_raw_copy">
+                                    <legend>交易Hex原始码</legend>
+                                    <p id="ethereum_dispatch_raw_hex" contenteditable="true"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                        在这里输入Hex格式的交易串……
+                                    </p>
+                                </fieldset>
+                                <button id="ethereum_dispatch_tx" style="margin: 4px 0px 1rem;">发布</button>
+                                <button id="ethereum_decode_tx" style="margin: 4px 0px 1rem;">解码</button><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; visibility:hidden">
+                                    <legend>发布结果</legend>
+                                    <p id="ethereum_dispatch_result"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                    </p>
+                                </fieldset>
+
+                                <p>或者直接去这些网站发布交易：</p>
+                                <fieldset>
+                                    <legend>加密币主网</legend>
+                                    <a href="https://blockchair.com/broadcast"
+                                        target="_blank">https://blockchair.com/broadcast</a><br>
+                                    <a href="https://live.blockcypher.com/btc/pushtx/"
+                                        target="_blank">https://live.blockcypher.com/btc/pushtx/</a><br>
+                                    <a href="https://www.blockchain.com/btc/pushtx"
+                                        target="_blank">https://www.blockchain.com/btc/pushtx</a>
+                                </fieldset><br>
+                                <!--fieldset>
+                                    <legend>比特币测试网</legend>
+                                    <a href="https://mempool.space/testnet4/tx/push"
+                                        target="_blank">https://mempool.space/testnet4/tx/push</a><br>
+                                    操作系统命令：curl -d '{"hex":"YOUR_RAW_TX_HEX"}' https://blockstream.info/testnet/api/tx
+                                </fieldset -->
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            </div>
+            <div id="tool_html" style="position: absolute; top: 0px; width: 100%; visibility: hidden;">
+                <details class="child" id="encrypt_privatekey">
+                    <summary>私钥保护</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">帮助</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                在这里可以把明文私钥加密成密文私钥，也可以把密文私钥解密成明文私钥！因为私钥太重要了，为了安全，建议加密保存私钥，只要密码没泄露出去，就算其他人获得了密文私钥，
+                                也是没法签名从而盗取你的加密币的。以后每一次签名前首先解密成明文私钥才行，所以密码千万不要忘记啦！如果要拷贝粘贴私钥，请分成多段进行，比如先拷贝前半段再拷贝后半段，留下中间几个字符手工输入，
+                                这样就可以杜绝剪贴板间谍软件盗取私钥。对于“CPU/内存成本”、“块大小”和“并行化”不要轻易改变，除非你知道它们确切的意思并且真的需要修改它们。
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                私钥加密后，记得一定要验证能否解密。加解密的“密码”、“CPU/内存成本”、“块大小”和“并行化”要完全相同才行，且要牢记修改后的数字！</p>
+                        </details>
+                        <hr />
+                        <br>
+                        Select Coin Type:&nbsp;<select id="select_cryptocurrency"
+                            style="text-align: center;border-style: none;background-color: transparent;outline-style: none;border-bottom: 1px solid black;color: red;">
+                            <option value="0" selected="">Bitcoin</option>
+                            <option value="60">Ethereum</option>
+                        </select><br>
+                        <div id="security" style="position: relative;">
+                            <textarea id="decryptKey"
+                                style="position: absolute;top: 28px;left: 100px;width: 330px;height: 110px;border: none;color: #17b909;resize: none"
+                                placeholder="在这里输入明文密钥。"></textarea>
+                            <p id="format" style="position: absolute;top: 144px;left: 160px;color: gray;"></p>
+                            <div style="position: absolute; top: 58px;left: 536px;">
+                                <input id="password" type="password"
+                                    style="width: 114px;text-align: center;border: none;position: absolute;">
+                                <img id="eyes" src="images/closeeye.png"
+                                    style="position: absolute;left: 118px;width: 16px;top: 3px;" />
+                            </div>
+                            <button id="encrypt"
+                                style="position: absolute;top: 12px;left: 558px;width: 90px;border-radius: 10px;font-size: 1.2rem; background-color:#f2bac2; cursor: pointer;">加
+                                密</button>
+                            <button id="decrypt"
+                                style="position: absolute;top: 93px;left: 558px;width: 90px;border-radius: 10px;font-size: 1.2rem;background-color:#c6f4a0; cursor: pointer;">解
+                                密</button>
+                            <button id="clear"
+                                style="position: absolute;top: 140px;left: 562px;font-size: 1.1rem; cursor: pointer;">清空数据</button>
+                            <textarea id="encryptKey"
+                                style="position: absolute;top: 28px;left: 786px;width: 330px;height: 110px;border: none;color: red;resize: none"
+                                placeholder="在这里输入密文密钥。"></textarea>
+                            <p id="notice"
+                                style="position: absolute;top: 144px;left: 850px;color: red; visibility: hidden;">
+                                务必牢记密文私钥和密码！！
+                            </p>
+                        </div>
+                        CPU/内存成本：<input id="N_id"
+                            value="16384">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;块大小：<input id="r_id"
+                            style="width: 3rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;并行化：<input
+                            id="p_id" style="width:3rem" value="8">
+                        <!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;是否压缩：<label>压缩<input type="radio" name="isCompressed" checked></label>&nbsp;&nbsp;&nbsp;<label>不压缩<input type="radio" name="isCompressed"></label -->
+
+                    </div>
+                </details>
+                <details class="child" id="customize_mnemonic">
+                    <summary>定制助记词</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">帮助</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                合法的助记词最后一个单词是其他单词的校验，所以自己不能随便选择所有的单词，而且单词数量只限于12、15、18、21或24个。<br>
+                                在这里你可以定制助记词（比如选择自己熟悉的便于记忆的单词），除了最后一个单词外的其他单词都可以自己指定，不过指定的单词越多安全性可能就越差，毕竟人为选择的单词随机性不佳，相对系统随机选择的助记词来说，更容易被他人猜出。所以遵循的原则就是自己指定的单词越少越好。<br>
+                                操作：首先确定一个助记词包含的单词个数，数量越多越安全，其次选择好助记词所在的语言，默认是英语，你也可以选择简体中文、日语等其他语言，不过英语通用性强，不管在世界什么地方用什么钱包，英语助记词都是支持的，而其他语言的通用性就差一些，比如你下次使用某款钱包app，可能就不支持简体中文的助记词。
+                                然后指定某些单词，除了最后一个单词不能指定外，其他的都可以，比如指定前五个单词为love you very much
+                                really，或者在简体中文中指定1、3、5、7四个汉字为“中”、“王”、“大”、“民”。最后点击“补全助记词”按钮即可产生完整的助记词。
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                注意：你最后决定使用的助记词要去比特币或者以太币的钱包管理中验证，看看能否正确产生钱包！</p>
+                        </details>
+                        <hr />
+                        <br>助记词数量：<input value="12" id="customize_mnemonic_length" type="number" min="12" max="24"
+                            step="3"
+                            style="width: 50px;text-align: center;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                        助记词语言：<select id="customize_new_language"
+                            style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:6rem;">
+                            <option value="en" selected="">英语</option>
+                            <option value="cn">简体中文</option>
+                            <option value="tw">繁体中文</option>
+                            <option value="ja">日语</option>
+                            <option value="es">西班牙语</option>
+                            <option value="fr">法语</option>
+                            <option value="it">意大利语</option>
+                            <option value="ko">韩语</option>
+                            <option value="pt">葡萄牙语</option>
+                            <option value="cz">捷克语</option>
+                        </select><br><br>
+                        <fieldset style="width: 66rem;">
+                            <legend>定制助记词</legend>
+                            <div id="customize_mnemonic_words"
+                                style="line-height: 3rem; display: flex; flex-wrap: wrap;">
+                                <label class="mnemonic_customize_input">1.<input id="mnemonic_1"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">2.<input id="mnemonic_2"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">3.<input id="mnemonic_3"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">4.<input id="mnemonic_4"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">5.<input id="mnemonic_5"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">6.<input id="mnemonic_6"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">7.<input id="mnemonic_7"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">8.<input id="mnemonic_8"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">9.<input id="mnemonic_9"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">10.<input id="mnemonic_10"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">11.<input id="mnemonic_11"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">12.<input id="mnemonic_12"
+                                        class="mnemonic_customize" disabled style="border:3px solid #999;"></label>
+                            </div>
+                        </fieldset>
+                        <br>&nbsp;<button id="mnemonic_customize_btn">补全助记词</button>
+                        <button id="mnemonic_customize_reset">清空</button>
+                        <p id="mnemonic_customize_result"></p>
+                    </div>
+                </details>
+                <details class="child" id="qrcode_manage">
+                    <summary>生成二维码</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">帮助</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                把公钥、地址、ENS域名等信息做成二维码，保存在手机上，可以方便发给他人，或者扫描。
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                注意：可以把私钥或助记词做成二维码，但是千万不要保存在移动设备上（如手机、平板等），或扫描，因为移动设备是最不安全的！</p>
+                        </details>
+                        <hr />
+                        <br>保存在二维码上的内容：<br>
+                        <textarea id="qrcode_content"
+                            placeholder="输入需要保存在二维码上的信息……"
+                            style="width: 40rem; height: 5rem;padding: 1rem;"></textarea><br>
+                        二维码标题：<input id="qrcode_title"
+                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
+                        &nbsp;&nbsp;Tail:&nbsp;<input id="qrcode_tail"
+                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;"><br><br>
+                        <button id="generate_qrcode_btn">生成二维码</button>
+                        <button id="qrcode_reset">清空</button>
+                        <div style="width: 42rem;text-align: center;padding-top: 5rem;">
+                            <span id="qrcode_title_dis" style="font-size: 1.5rem; color: #999;">标题</span>
+                            <div id="qrcode" style="padding: 4px 13rem">
+                                <div
+                                    style="width: 256px; height: 256px; border: 1px dotted black; line-height: 256px; color: gray;">
+                                    二维码</div>
+                            </div>
+                            <span id="qrcode_tail_dis" style="color: #999;">尾部</span>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            <div id="help_html"
+                style="position: absolute;top: 0px;width: calc(100% - 4rem);visibility: hidden;background-color: white;padding: 2rem;">
+                <h3 style="color: rgb(213, 5, 5);">警告：</h3>
+                <p style="color: rgb(213, 5, 5); line-height: 1.5rem;">（1）. 请使用火狐浏览器，可从<a
+                        href="https://www.mozilla.org/zh-CN/firefox/all/" target="_blank" class="online"> 这里
+                    </a>下载安装它。火狐浏览器是开源的，是很难留后门的。<br>
+                    （2）. 请使用火狐浏览器的隐私窗口（启动火狐浏览器后安Ctrl+Shift+p打开浏览器的隐私窗口），关闭隐私窗口后会销毁所有上网痕迹，这样能确保你的私钥安全无虞。<br>
+                    （3）. 在产生钱包、恢复钱包以及签名时务必让浏览器断开网络（按一下Alt键，然后点击左上角的“文件”，再点击里面的“脱机工作”即可），这样能确保私钥不会通过网络泄露出去。<br>
+                    （4）. 拷贝粘贴私钥时要采用三段法：先拷贝粘贴一段，接下来的几个字符手工输入，最后把剩余的字符拷贝粘贴过去。这样能杜绝专门监视系统剪贴板的间谍软件盗取你的私钥。参考下图所示：</p>
+                <img src="images/copy_pri.png" style="width: 800px;"><br><br>
+                <hr style="border-top: 1px;border: none;background-color: #bbb;height: 1px;"><br>
+                <h2>1. 交易简介</h2>
+                <p class="help">
+                    从一个故事开始吧，话说张三打工几年苦下了一些闲钱，在国内没有好的投资渠道。“至少吧，能使兜里的几个碎银保值。”张三权衡再三，于是决定倾囊购买一些加密币，听说五年后的一个比特币能在二线城市买一套房，所以就决定购买比特币了。
+                    首先张三需要一个比特币钱包，于是他在某个加密币交易平台上注册账号，从而自动获得了一个在线比特币钱包（不妨称为钱包A吧），然后又搞到一个线下钱包（不妨称为钱包B）。张三通过钱包A买进比特币，等积累到一定币量（比如等值十万元）时，
+                    就把钱包A的比特币转入钱包B，毕竟钱包A在第三方平台上，不安全，而钱包B只有张三一个人知道。卖出比特币时先从钱包B转到钱包A，然后再在平台上售卖。除了线上买卖比特币外，还有一个渠道是线下，例如张三认识李四，李四手上正好有比特币卖，
+                    于是张三找到李四说想买比特币，张三通过微信转账十万元给李四，李四直接放币到张三的钱包B。
+                </p>
+                <p class="help">通过本网站，你不但能搞到钱包B，你还能线下放币给别人，你还能找到去哪里搞到钱包A，你还能找到线下出售加密币的人，……</p>
+                <p class="help">
+                    在中国，投资加密币是屌丝逆袭的最佳途径，没有之一。截止到2024年底，一枚比特币值十万美元，能在三线城市购买一套房子，可以肯定五年后，一枚比特币能在二线城市购买一套房子，十年后能在一线城市
+                    购买一套房子！是不是很鸡冻？如果是请继续往下看。
+                <p class="help">那到底如何买卖加密币呢？请听下回分解……哈哈。</p>
+                <p class="help">
+                    首先你至少需要一个加密币钱包，钱包里有一个地址，你购买加密币时把地址告诉对方，并说“嗨，请往这个地址放币！”，对方也许很小心，反馈说“请再三确认地址没错哦，否则放错币一切责任在你！”。于是你
+                    又双叒叕核对钱包地址，然后向对方保证“地址没错，兄弟你就放心吧！”等对方转账完后，你可以用此地址查询是否收到加密币，比如可以在这个网站https://blockchair.com/zh/上输入地址查询！
+                </p>
+                <p class="help">
+                    此后你不断购买加密币，每天看着价格噌噌地往上涨，心里估摸着这下又挣了多少银子。于是你的财富逐日增加，你也慢慢脱离了屌丝的行列，有一天，你终于逆袭了！忍不住大喊着：“我靠，我爱死了这个操蛋的世界，来，为这必死的人生干一杯！”
+                </p>
+                <p class="help">那怎么购买加密币呢？别急，让我继续向你娓娓道来……在一个风高月黑的夜晚，你摸到了一个小木屋的门口……哈哈！</p>
+                <p class="help">
+                    钱包里还有一个私钥，你卖币时需要发起一笔转账交易，并用这个私钥对交易进行签名，然后把签名后的交易发布到网上，会有某个矿工把你发起的交易打包进区块的，你就等着吧，一般几分钟后交易就会完成。交易费给得越多，处理的优先权就越高。
+                    交易费是给矿工的，不过现在的矿工看重的可不是那微不足道的交易费，而是挖矿奖励的加密币。你在发起交易时自己确定交易费，交易费一般一美元之内就可以了，交易费多少与转账金额没有关系。我曾经只给了0.4美元的交易费，也很快完成了交易。交易费不是真的给美元，而是给等值
+                    的加密币。一个比特币等于1亿聪——即100000000聪，按照现在的汇率（一个比特币值10万美元），那么1美元约等于1000聪，0.4美元就是400聪。比如我发起一笔交易：卖给李四0.3个比特币，交易费1美元，于是填写的主要交易数据为：
+                    李四的钱包地址：xxxxx，发生额：30000000聪，交易费：1000聪。李四通过银行转账或者微信、支付宝什么的支付手段给我三万美元即可，或者等值的人民币21万（假如1美元兑7元人民币）。
+                </p>
+                <p class="help">地址是从私钥导出来的，但是从地址没法反推算出私钥，私钥和地址是一对的。私钥千万不要告诉任何人，只有掌握私钥的人才能卖掉钱包里的加密币！</p>
+                <p class="help">那么怎么获得一个钱包？请在下面的“钱包管理”中操作，又怎么发起一笔交易？请点击下面的“离线签名”和“发布交易”。</p>
+                <p class="help"><br><br></p>
+                <h2>2. 加密币钱包</h2>
+                <p class="help" style="font-weight: 700; font-size: large">2.1 私钥</p>
+                <p class="help">
+                    一个私钥就是一个加密币钱包！一个私钥就是256位二进制随机数！假设规定硬币正面表示1，背面表示0，那么你连续抛256次硬币，并写下这些0和1，就是一个不错的私钥，诸如这样的：</p>
+                <img src="images/pri.png" style="width: 900px;">
+                <p class="help">
+                    我亲自测试了抛硬币产生私钥的方法，记下的二进制数是：1100111101001101000100000011000011111110110011100001000001110001101101110011001001000110011110010011110100000110110100111101000010001110101011010011100001010100100000011110111000101000110010111111011110110010001010000101100101110111001001111001100011010001。
+                    256位二进制不好记，转换成十六进制就好多了，比如我把刚才抛硬币产生的256位二进制数转换成十六进制数，就是这样的：cf4d1030fece1071b73246793d06d3d08ead385481ee28cbf7b22859772798d1。“尼玛，你玩儿我呢，还是不好记住啊。”“我靠，你就不知道写在纸上吗？”
+                    把私钥写在纸上就称为纸钱包，记载脑袋里就是脑钱包，放在电脑里就称为电子钱包。比特币和以太币都是采用256位随机二进制数作为私钥，因此同一个私钥既可以发起比特币交易也可以发起以太币交易，不过我建议你不要这么做，因为万一你忘记了这个私钥，你的一切加密币就Game
+                    Over了，或者万一私钥被盗，所有加密币面临被盗的风险。根据比特币专家的建议：你收到的每一笔转账都采用不同的私钥！也就是说使用私钥x接收张三转给你的三个比特，使用另一个私钥y接收李四转来的五个比特，如果王二也要给你放币，继续使用新的私钥。不过我的建议是：如果是大额转账就采用专家的建议，如果是小额度的，还是不要使用过多的私钥，否则不好管理。
+                </p>
+                <p class="help">为了便于把私钥导入钱包app，比特币会把十六进制的私钥转换成Base58编码的格式，称为WIF格式（Wallet Import
+                    Format三单词的首字母缩写，意为钱包导入格式），例如我上面抛硬币产生的私钥换成WIF格式就是：L4AgDeoTPbdRd4S7X9UhXaNtyxZhDuj7EoUxPUndDYkvfmHjR8Cd。二进制表示的私钥、十六进制表示的私钥和WIF格式的私钥可以相互转换，因此你只要记住任何一个就行。
+                    不过要记住：十六进制的字母大小写没有区别，但是对于WIF格式的私钥来说，字母大小写是严格区分的！
+                </p>
+                <p class="help" style="color: rgba(222, 15, 15, 0.959)">
+                    私钥不要告诉任何人，除了你自己，没有人知道你的私钥，切记！切记！！不过呢，以防你万一你遭遇不测，也可以告诉家人，以免加密币随同你一起驾鹤西去……呵呵。</p>
+                <p class="help">
+                    在实际的操作过程中，我们一般不会采用抛硬币的方法来产生私钥，而是采用电脑程序代码。关于私钥就讲这些啦，如果向进一步了解私钥，不妨去翻看我写的新书《加密币安全交易实战》，可从我的个人网站下载。
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">2.2 地址</p>
+                <p class="help">
+                    钱包地址是从公钥推导出来的，而公钥又是从私钥推导出来的，但是从地址无法反推算公钥，从公钥无法反推私钥。地址可以告诉别人，你购买加密币时别人就是往这个地址放币的，这像极了网购，你付款后，商家就往你家的地址发货。各种加密币从私钥推导地址的方法不尽相同，最终得到的地址也不同，比如比特币和以太币从同一个私钥推导出来的地址是不同的，且比特币地址不能用于接收以太币，同样以太币地址不能接收比特币，
+                    如果搞错了，别人转给你的加密币就永久丢失了，这一点千万要记住！即使是同一种加密币，随着时间的发展，可能存在多种地址类型，比如比特币地址就存在很多类型，依时间顺序有：P2PK、P2PKH、P2SH、P2WPKH、P2TR等，P2TR是2021年才发展起来的，P2WPK现在最流行，此地址对应的交易数据量小，交易费用低。P2SH、P2TR地址支持多签，这一点特别适合多人决策的组织，比如公司花钱时需要老总、分管财务的副总和财务主管签名才行，为此公司
+                    可以采用P2SH地址，发起转账业务时需要多人使用各自的私钥签名。
+                    同一个私钥可以推导出任意类型的地址，比如我从同一个私钥推导出比特币全部类型的地址，转币时，我把对方钱包支持的最新版地址告诉他，比如张三的钱包支持P2WPKH、P2SH和P2PKH三种类型的地址，我就把我的P2WPKH地址告诉他，而李四的钱包只支持P2PKH和P2PK，我就把我的P2PKH地址告诉他。早期开发的钱包app很可能不支持后来诞生的地址类型，这一点容易理解。
+                </p>
+                <p class="help">
+                    例如从我前面抛硬币产生的私钥（即L4AgDeoTPbdRd4S7X9UhXaNtyxZhDuj7EoUxPUndDYkvfmHjR8Cd）导出的各类比特币地址如下（可在https://secretscan.org/完成）：<br>　　P2PKH地址：1QKaUAoU2h9HUFyBpxFwrSZ4X4n4X2Xukp<br>　　P2SH地址：35SbZDs5biwdSFFUTR5GTQSH2fkDX2GqQ8<br>　　P2WPKH地址：bc1qll89rqfmzllnyd9cnzy8vex9jueqv86y6587wg<br>　　P2WSH地址：bc1q0lsk5wd7kqr053lyzxmcdy2a07a7ntju4rjjwftutqsahg6u2gfqu6tp6v<br>　　P2TR地址：bc1pgp2szey33f8eaqxd5hlulhmhd6dh8fz90zdgftr0var5jcs4vypsx5u8f6
+                </p>
+                <p class="help">
+                    之所以我没有产生P2PK地址，那是因为它太老旧了，现在几乎没有人使用。P2PKH和P2SH地址采用Base58编码，地址中存在大小写字母，而且严格区分大小写字母的，而后三种地址采用Bech32编码格式，地址中不再出现大写字母了。
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">2.3 钱包余额</p>
+                <p class="help">
+                    以太币存在余额的概念，但是比特币没有单独称为余额的东西，比特币钱包app中显示的余额是临时计算出来的——把你收到的每一笔转账的发生额加起来就是余额。当你花钱（放币给别人）时就是消耗你以前收到的转账，为了进一步理解，我举个例子：
+                </p>
+                <p class="help">
+                    假设你的一个地址之前一共收到了张三和李四转账给你的两笔钱——张三给你1个比特币，李四给了你0.5个比特币，现在你的钱包余额为1.5个比特币。接下来你要给麻子转0.7个比特币，显然需要花掉以前张三转给你的那笔钱，于是你发起一笔转账业务，填写的内容大致如下：花掉张三给我的那笔转账100000000聪（1个比特币），给麻子70000000聪（0.7个比特币），交易手续费1000聪，剩下的29999000聪转回我的地址。然后用私钥对转账签名后再发布。
+                    现在张三给你的那笔转账已经花完了，以后计算余额时就排除这笔帐。不过你同时多了一笔自己转给自己的帐（发生额为29999000聪，即0.29999个比特币），这个0.29999会计入钱包余额，所以现在的钱包余额为0.79999个比特币了。
+                </p>
+                <p class="help">
+                    在上面的例子中，我能否花掉李四放币给我的那笔转账呢？不行，因为金额不够。但是我可以同时花掉张三和李四的两笔账，共1.5个币，只不过把差额0.79999个币转回我的钱包（一般是我的另一个钱包地址，以便归拢资金）。
+                </p>
+                <p class="help">好了，现在总结一下，比特币的钱包余额就是所有还没有花掉的转账发生额之和，表示为UTXO，即Unspent Transaction Output。</p>
+                <p class="help"><br><br></p>
+                <h2>3. 离线签名</h2>
+                <p class="help">
+                    一笔转账业务必须先签名才能发布，就是使用私钥对转账业务进行签名，当矿工收到这笔业务时首先要验证签名，签名验证通过后才打包进入区块，否则直接删除这笔转账业务。那么现在的问题是如何发起一笔转账交易？要发起一笔转账交易必须明确这几方面：（1）要花费我哪些UTXO？（2）给哪些地址放币、各放币多少？（3）扣除手续费后多余的加密币转回给我的哪个地址？<br>要花费的那些UTXO在本次转账业务中称为输入（Input），加密币的接收方称为输出（Output），
+                    因此存在一个等式：全部输入的加密币之和=全部输出的加密币之和+交易手续费。因此一个转账交易包含若干个输入、若干个输出和对输入的签名，手续费是由矿工计算出来的——输入金额之和减去输出金额之和。
+                </p>
+                <p class="help"><br><br></p>
+                <h2>4. 私钥管理</h2>
+                <p class="help">私钥如此重要，所以如何更好的管理私钥一直以来是大家心心念念的大事。私钥忘记了等于你的加密币永久丢失了，私钥被盗意味着你的加密币被盗。</p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">4.1 私钥加密保护</p>
+                <p class="help">
+                    为了防止私钥被盗，可以对私钥进行加密保护，即形成密文私钥，这样即使别人获取了密文私钥，他如果不知道解密密码，他是无法获得明文私钥的，也就无法发起交易并签名，因为矿工会拒绝所有无法验证签名的交易！加密密码类似网银密码、或者邮箱密码，一般就是7、8个字符，一般记在脑袋里。而密文私钥可以写在纸上，或者保存在电脑里、U盘里、网盘里或者邮件里。如果加密密码太简单（比如很多人喜欢采用123456做密码），即使私钥加了密也面临极大风险，尤其是把私钥保存在网盘中。所以密码不要太简单，最好包含数字、小写字母和诸如.,%@#*&!;-等字符，而且长度不要太短，建议9个字符以上。
+                    在上面的“钱包管理”中可以对私钥进行加密和解密。
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">4.2 HD钱包</p>
+                <p class="help">
+                    HD钱包可以产生大量的私钥，而且便于记忆和管理，为了满足“加密币投资最佳实践”中的一条建议：每一笔业务单独采用一个私钥。随着交易数量的不断攀升，用到的私钥也大幅度增加，这时对私钥加密就显得耗时费力了。此时HD钱包就该上场了。HD意为分层确定性钱包，其核心思想就是从一组单词可推导出大量账户，每个账户可推导出大量私钥。之前讲过，一个私钥就是一个钱包。现在我们只要记住那一组单词就可以了，这一组单词称为助记词，单词个数可为12、15、18、21、24，
+                    单词个数越多，别人就越难猜出来，那么你的HD钱包也就越安全，比如asset curve boss naive trade never sister evoke what lunch
+                    glory
+                    update course
+                    acquire first mistake solve bullet pipe practice husband round glow
+                    wing就是由24个单词组成的助记词。助记词不能由我们自己人为指定，因为最后一个单词隐含了前面单词的校验信息。如果你想了解产生助记词的机制，请翻阅我写的书《加密币安全交易实战》。从助记词推导账户这一步，允许增加密码，这样即使别人获得了你的助记词，
+                    他也是无法获得你的账户的，除非他同时知道密码。
+                </p>
+                <p class="help">
+                    产生HD钱包时，你需要指定第几个账户中的第几个钱包。恢复HD钱包时，需要输入助记词，指定第几个账户、第几个钱包，如果设置了密码，还需要输入密码。例如两年前我用助记词poem
+                    crater
+                    dove
+                    table knock moment raccoon scrub color raccoon figure
+                    stumble通过密码A1b2C3&推导5号账户中的2号钱包，并让张三往此钱包转了3个比特币，那时我在纸上记下了如下信息：
+                    “poem crater dove table knock moment raccoon scrub color raccoon figure
+                    stumble/5号账户/2号钱包”，而密码是我经常用的，记在脑袋里了。</p>
+                <p class="help">现在要花这笔钱，我得找回私钥才行，所以我就在上面的“钱包管理”中输入助记词poem crater dove table knock moment raccoon
+                    scrub color
+                    raccoon figure
+                    stumble和密码A1b2C3&，账户5和钱包2，然后点击“创建钱包”按钮就可以看到私钥KyPwsvn7cPoCoyujACRUz4m5SsH9tYaYv6JTm4YAu1XBMfH1fs17，拿到私钥后就可以发起交易并签名了。
+                </p>
+                <p class="help"><br><br></p>
+                <h2>5. 最佳实践</h2>
+                <p class="help">
+                    纯粹是我个人的经验总结，仅供参考。<br>（1）对于普通的人，只是买卖加密币而且交易频率也不高（一年难得超过10次），且加密币资产在1百万以内，建议只采用一个私钥，并用密码保护好私钥，然后从此私钥导出比特币的P2WPKH和P2PKH两个地址，再导出以太币的地址。<br>
+                    （2）加密币资产在百万以上千万以内的人，且买卖频率不高，建议只采用一个助记词（包含18个或以上的单词），并用密码保护好助记词，用助记词推导出比特币的HD钱包，路径类似m/84'/0'/i'/0/j，即第i个账户里的第j个钱包，只用1至2个账户，每个账户2、3个钱包足矣；再推导以太币的HD钱包，路径类似m/44'/60'/i'/0/j，i和j的意思与比特币相同。<br>
+                    （3）对于重度投资加密币的人，资金在千万元以上甚至数亿、乃至几十亿上百亿，每种加密币各用一组助记词，助记词包含24个单词，且采用长度不低于15个字符的密码来保护助记词，密码包含大小写字母、数字和其他符号。使用3、5个账户，每个账户里开设若干个钱包，合理规划账户和钱包的使用，每一笔超千万的大额转账单独使用一个钱包来收款，钱包的私钥必须用密码加密保护，签名时使用密文私钥和密码（临时解密私钥完成签名）。
+                </p>
+
+                <br><br><br><br><br><br><br>
+            </div>
+        </main>
+        <footer style="visibility: hidden">FOOTER</footer>
+    </div>
+    <dialog id="wallet_dialog">
+        <h3 style="text-align: center;">我的对话框</h3>
+        <p></p>
+        <table>
+            <tbody>
+                <tr style="text-align: center;">
+                    <td id="tx_hd1" colspan="2" style="border-bottom: 1px dotted #999; border-right: 1px dotted #999;">
+                        输入</td>
+                    <td id="tx_hd2" colspan="2" style="border-bottom: 1px dotted #999;">输出</td>
+                </tr>
+                <tr style="line-height: 1.2rem; color: #333; font-size: 0.8rem;">
+                    <td id="tx_td1" style="text-align: right;vertical-align: top;border-bottom: 1px dotted #999;"></td>
+                    <td id="tx_td2"
+                        style="border-right: 1px dotted #999;vertical-align: top;padding-right: 4px;border-bottom: 1px dotted #999;">
+                    </td>
+                    <td id="tx_td3"
+                        style="text-align: right;vertical-align: top; padding-left: 4px;border-bottom: 1px dotted #999;">
+                    </td>
+                    <td id="tx_td4" style="vertical-align: top;border-bottom: 1px dotted #999;"></td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="text-align: center;"><button id="view_raw_tx">交易原始数据</button><button type="button"
+                id="close_dialog">关闭</button></p>
+        <p id="display_rawtx" style="width: 54rem; word-break: break-all; color: gray;"></p>
+    </dialog>
+    <dialog id="dialog_deconstruction_rawtx" style="overflow-x: hidden;width: 53rem;">
+        <h3 style="text-align: center;">交易的原始数据和解码</h3>
+        <p></p>
+        <fieldset style="width: 50rem;">
+            <legend>交易原始码</legend>
+            <div id="dis_raw_hex"
+                style="word-break: break-all;font-family: math;color: #666666;margin: 4px;max-height: 5rem;overflow-y: scroll;">
+            </div>
+        </fieldset><br>
+        <p>交易解构如下：</p>
+        <div id="dec_fee" style="color:blueviolet; font-size: small;"></div>
+        <table id="deconstruction_table">
+            <tbody>
+            </tbody>
+        </table>
+        <p style="text-align: center;"><button id="dialog_dec_close">关闭</button></p>
+    </dialog>
+
+    <dialog
+        style="z-index: 9999;text-align: center;border-radius: 50%;border-style: none;position:relative;height: 120px;box-shadow: 0px 3px 8px 0px rgba(0, 0, 0, 0.3);overflow: clip;"
+        id="waiting">
+        <img src="images/doing.gif" style="width: 100px;position: absolute;z-index: 100;left: 36%;top: 30px;">
+        <div
+            style="position: absolute;background: repeating-linear-gradient(-45deg,#666666, #666666 4%,#EEEEEE 4%, #EEEEEE 8%);width: 100%;height: 2rem;top: 60px;left: 0px;">
+        </div>
+        <p style="font-size: small;margin-top: 74px;">稍后，我正在努力…</p>
+    </dialog>
+    <div id="help"
+        style="overflow-y: scroll;width: 0px;height: 100%;border: 1px solid #DDD;position: fixed;background-color: white;top: 0px;right: 0px; transition: width 1s">
+        <input type="image" src="images/delete.png"
+            style="padding: 4px;position: absolute; top: 2rem; left: 2rem; width: 1rem;" class="tx_in_delete"
+            title="隐藏窗口">
+        <h2 style="text-align: center; margin: 2.8rem 0px 0px;">帮助窗口</h2>
+        <hr>
+        <div id="help_content" style="padding: 1rem 2rem;"></div>
+    </div>
+    <div id="configure_global_parameters"
+        style="width: 100%;height: 100%;background-color: rgba(255, 239, 211, 0.7);position: fixed;top: 0px;left: 0px;">
+        <div
+            style="padding: 1rem;position: absolute;background-color: white;top: calc(50vh - 100px);left: calc(50vw - 200px);box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.2);">
+            <fieldset style="border: 1px solid #DDD;" id="bitcoin_gloabal_pars">
+                <legend style="color: gray;">比特币：</legend>
+                网络:<select
+                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:8rem;">
+                    <option value="0" selected>主网</option>
+                    <option value="1">公共测试网</option>
+                    <option value="2">本地测试网</option>
+                </select>
+                　　兑美元汇率:<input value='100000'
+                    style="border-style: none;border-bottom: 1px solid black;text-align: center;color: green;width: 4rem;outline-style: none;">
+            </fieldset><br>
+            <fieldset style="border: 1px solid #DDD;" id="ethereum_gloabal_pars">
+                <legend style="color: gray;">以太币：</legend>
+                网络:<select
+                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:8rem;">
+                    <option value="0" selected>主网</option>
+                    <option value="1">测试网</option>
+                </select>
+                　　兑美元汇率:<input value='2500'
+                    style="border-style: none;border-bottom: 1px solid black;text-align: center;color: green;width: 4rem;outline-style: none;">
+            </fieldset><br>
+            <fieldset style="border: 1px solid #DDD;">
+                <legend style="color: gray;">助记词语言：</legend>
+                <select id="grobal_pars_language"
+                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:6rem;">
+                    <option value="en" selected="">英语</option>
+                    <option value="cn">简体中文</option>
+                    <option value="tw">繁体中文</option>
+                    <option value="ja">日语</option>
+                    <option value="es">西班牙语</option>
+                    <option value="fr">法语</option>
+                    <option value="it">意大利语</option>
+                    <option value="ko">韩语</option>
+                    <option value="pt">葡萄牙语</option>
+                    <option value="cz">捷克语</option>
+                </select>
+            </fieldset><br>
+            <p style="text-align: center;"><button id="choose_net" style="font-size: 1rem;padding: 0 1rem;">确认</button>
+            </p>
+        </div>
+    </div>
+    <img id="cover_crypto" src="images/bitcoin_html.png"
+        style="position: fixed;z-index:9999;top: 20%;right: 20%;visibility: hidden">
+</body>
+<script src="../js/binaryTree.js"></script>
+<script src="js/variables.js"></script>
+<script src="js/common.js"></script>
+<script src="js/bitcoin.js"></script>
+<script src="js/ethereum.js"></script>
+
+</html>

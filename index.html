@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="styles/common.css" rel="stylesheet">
+    <link href="styles/ethereum.css" rel="stylesheet">
+    <title>Practical Guide to Secure Cryptocurrency Trading</title>
+
+    <!--1. Bitcoin JS Libraries-->
+    <script src="js/bitcoinjs-lib.min.js"></script><!--Import bitcoin object-->
+    <script src="js/bip32.min.js"></script><!--Import bip32 object-->
+    <script src="js/bip38.min.js"></script><!--Import bip38 object-->
+    <script src="js/bip39.min.js"></script><!--Import bip39 object-->
+    <script src="js/bip84.min.js"></script><!--Import bip84 object-->
+    <script src="js/wif.min.js"></script><!--Import wif object-->
+    <script src="js/ecpair.min.js"></script><!--Import ecpair object-->
+    <script src="js/bitcoinerlabsecp256k1.min.js"></script><!--Import bitcoinerlabsecp256k1 object-->
+    <script src="js/buffer.min.js"></script><!--Import Buffer object-->
+    <script src="js/bech32.min.js"></script><!--Import bech32 object-->
+    <script src="js/bs58check.min.js"></script><!--Import bs58check object-->
+    <script src="js/axios.min.js"></script><!--Import axios object for network requests-->
+    <script src="js/qrcode.min.js"></script>
+    <!--script src="js/bip-schnorr.min.js"></script--><!--Import bipSchnorr object for Schnorr signatures-->
+    <!--script src="js/tiny-secp256k1.js"></script -->
+
+    <!--2. Ethereum JS Libraries-->
+    <script type="module">
+        import { ethers } from "./js/ethers.min.js";
+        window.ethers = ethers;
+        import * as wordlistsExtra from "./js/wordlists-extra.min.js";//LangCz, LangEs, LangFr, LangIt, LangJa, LangKo, LangPt, LangZh
+        window.wordlistsExtra = wordlistsExtra;
+    </script>
+</head>
+
+<body>
+    <select id="select_language"
+        style="text-align: center;border-style: none;background-color: transparent;outline-style: none;position: absolute;right: 10px;top: 4px;border-bottom: 1px solid #999;">
+        <option value="en" selected="">English</option>
+        <option value="cn">简体中文</option>
+    </select>
+
+    <div class="container">
+        <header>
+            <img src="images/logo.png" style="position: absolute;top: 5px;left: 16px;height: 70px;">
+            <div
+                style="position: absolute;left: 100px;font-size: 3.5rem;text-shadow: -1px -1px #eee,1px 1px #555;color: lightblue;font-weight: 600;height: 80px;line-height: 80px;">
+                Secure trading of cryptocurrencies</div>
+            <p id="alarm" style="position: absolute;top: 6px;left: 660px;color: red;font-size: 1.2rem;"></p>
+            <img id="choose_network" src="images/config.png"
+                style="position: absolute;top: 2.6rem;right: 4px;width: 40px;" title="Configuration">
+        </header>
+        <aside>
+            <ul>
+                <li style="background-color: #777; border-bottom: 2px solid rgb(255, 255, 255);" data-id="bitcoin_html">
+                    <figure style="background: url(images/current.png) right center no-repeat;">
+                        <img src="images/btc.png">
+                        <figcaption>Bitcoin</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #888;" data-id="ethereum_html">
+                    <figure>
+                        <img src="images/eth.png">
+                        <figcaption>Ethereum</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #ccc;" data-id="tool_html">
+                    <figure>
+                        <img src="images/tool.png">
+                        <figcaption>Tools</figcaption>
+                    </figure>
+                </li>
+                <li style="background-color: #EEEEEE;" data-id="help_html">
+                    <figure>
+                        <img src="images/help.png">
+                        <figcaption>Help</figcaption>
+                    </figure>
+                </li>
+            </ul>
+        </aside>
+        <main>
+            <div id="bitcoin_html" style="visibility: visible;">
+                <details class="parent" id="wallet_management">
+                    <summary>Wallet Management</summary>
+                    <div class="window" style="overflow-y: scroll;">
+                        <details class="child">
+                            <summary>Create Wallet & Restore Wallet</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can complete two tasks:<br>(1) Create a new wallet: Enter a password
+                                        and click the "Create Wallet" button. You can also choose not to enter a
+                                        password, but it is recommended to protect the mnemonic with a password.<br>
+                                        (2) Restore a wallet from a mnemonic: Enter your previous mnemonic and password
+                                        (if any), then click the "Create Wallet" button.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        The entire HD wallet can be restored from the mnemonic, seed, or root extended
+                                        private key. The account extended private key can restore all ordinary wallets
+                                        within an account, and a single private key can restore one ordinary wallet.
+                                        Therefore, an HD wallet is equivalent to a mnemonic, a seed, or a root extended
+                                        private key, while an ordinary wallet is equivalent to a single private key.
+                                        Root extended private keys and account extended private keys start with "zprv"
+                                        and are 111 characters long, whereas ordinary private keys are about 50
+                                        characters long. Thus, an HD wallet contains many ordinary wallets.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">You can input content in
+                                        the password field and the red text areas below.</p>
+                                </details>
+                                <hr style="border-top: 1px;border: none;background-color: #bbb;height: 1px;">
+                                <div id="wallet" style="position: relative;">
+                                    <input value="24" id="mnemonic_length" type="number" min="12" max="24" step="3"
+                                        style="width: 50px;text-align: center;color: red;border: none;position: absolute;top: 79px;left: 40px;font-size: 1.5rem;">
+                                    <select id="bitcoin_new_language"
+                                        style="color: red;text-align: center;border-style: none;background-color: transparent;outline-style: none;width: 5rem;position: absolute;left: 184px;top: 7px;">
+                                        <option value="en" selected="">English</option>
+                                        <option value="cn">Simplified Chinese</option>
+                                        <option value="tw">Traditional Chinese</option>
+                                        <option value="ja">Japanese</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="it">Italian</option>
+                                        <option value="ko">Korean</option>
+                                        <option value="pt">Portuguese</option>
+                                        <option value="cz">Czech</option>
+                                    </select>
+                                    <textarea id="mnemonic"
+                                        style="position: absolute;top: 70px;left: 138px;width: 220px;height: 130px;border: none;color: red;resize: none"
+                                        placeholder="Automatically generated mnemonic will appear here, or enter a previous mnemonic to display wallet information."></textarea>
+                                    <input value="" id="seed_password" type="password"
+                                        style="width: 214px;text-align: center;color: red;border: none;position: absolute;top: 90px;left: 374px;">
+                                    <input value="" id="seed"
+                                        style="width: 510px;color: red;border: none;position: absolute;top: 4px;left: 338px;"
+                                        placeholder="Seed...">
+                                    <input value="" id="root_privatekey"
+                                        style="width: 552px;color: red;border: none;position: absolute;top: 186px;left: 384px;"
+                                        placeholder="Root extended private key...">
+                                    <span
+                                        style="position: absolute;top: 110px;left: 860px;font-size: 1.2rem;">m/84'/0'/<input
+                                            class="path" id="path" value="0'/0/0"
+                                            style="width: 8rem;color: red;border: none; font-size: 1.2rem;">
+                                    </span>
+                                    <!--input class="path" value="0" id="address_index"
+                                            style="width: 70px;text-align: center;color: red;border: none;position: absolute;top: 108px;left: 998px;font-size: 1.5rem;"-->
+                                    <button id="new_wallet"
+                                        style="position: absolute; top: 320px; left: 0px; width: 12rem; font-size: 1.5rem; font-weight: 700; color: blue">Create
+                                        Wallet</button>
+                                    <button id="recover_wallet"
+                                        style="position: absolute;top: 364px;left: 0px;width: 12rem;font-size: 1.5rem;font-weight: 700;color: #00bd18;">Restore
+                                        Wallet</button>
+                                    <button id="reset_wallet"
+                                        style="position: absolute;top: 408px;left: 0px;width: 12rem;font-size: 1.5rem;font-weight: 700;">Reset</button>
+                                    <button id="view_account_pri"
+                                        style="position: absolute;top: 460px;left: 0px;width: 12rem;font-weight: 700;padding: 4px 0px;font-size: 1.2rem;"
+                                        disabled>Show More Info</button>
+                                    <div id="view_wallet"
+                                        style="position: absolute;left: 380px;width: 770px;border: none;top: 270px;height: 230px;word-wrap: break-word;font-size: small;line-height: 1.25rem;">
+                                    </div>
+                                    <p id="prompt"
+                                        style="position: absolute;top: 490px;left: 340px;color: rgb(217, 15, 15);visibility: visible;">
+                                        Be sure to remember the mnemonic, password (if any), and path. Do not store the
+                                        password with the mnemonic!</p>
+                                    <p id="view_more" style="position: absolute; top: 530px;font-size: small;"></p><br>
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>Derive Public Key and Wallet Address from Private Key</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Enter a private key to derive the public key and various types of Bitcoin
+                                        addresses.
+                                    </p>
+                                </details>
+                                <hr>
+                                <input size="70" id="fromWif_wif"
+                                    placeholder="Manually enter or copy the private key (WIF format) in segments...">
+                                <button id="fromWif_button">Go</button>
+                                <table style="margin: 20px 0px;">
+                                    <tr>
+                                        <td colspan="2" style="border-bottom: 1px dotted #999;">1. Various Address
+                                            Types:</td>
+                                    </tr>
+                                    <tr style="line-height: 1.4rem;color: gray;">
+                                        <td style="text-align: right;padding-left: 20px;" id="address_td1"></td>
+                                        <td id="address_td2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">　</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="border-bottom: 1px dotted #999;">2. Various Encoded
+                                            Private Keys:</td>
+                                    </tr>
+                                    <tr style="line-height: 1.4rem;color: gray; vertical-align: top;">
+                                        <td style="text-align: right;padding-left: 20px;" id="private_td1"></td>
+                                        <td id="private_td2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">　</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="border-bottom: 1px dotted #999;">3. Various Public Key
+                                            Formats:</td>
+                                    </tr>
+                                    <tr style="line-height: 1.4rem;color: gray;">
+                                        <td style="text-align: right;padding-left: 20px; vertical-align: top;"
+                                            id="public_td1"></td>
+                                        <td id="public_td2" style="vertical-align: top;"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </details>
+
+                        <details class="child">
+                            <summary>Generate Multi-Signature Address</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can generate P2SH or P2WSH multi-signature addresses, or generate P2TR
+                                        script path addresses. The P2TR key path address is generated in the "Create
+                                        Wallet & Restore Wallet" section.
+                                    </p>
+                                </details>
+                                <hr />
+                                <fieldset style="width: 60rem;padding: 1rem; border: 1px dotted #AAA">
+                                    <legend style="text-align: center; font-weight: 700">P2SH and P2WSH Multi-Signature
+                                        Addresses</legend>
+                                    <span style="display: block;">Enter Public Keys:</span>
+                                    <textarea style="display: block; word-break: break-all; width: 59rem"
+                                        placeholder="Enter all compressed public keys participating in the multi-signature, separated by commas"
+                                        rows="5" id="get_multi_address"></textarea>
+                                    <span style="display: block; margin-top: 10px;">Redeem Script (can be modified.
+                                        Note: Public keys must be sorted in ascending order!):</span>
+                                    <textarea style="word-break: break-all; width: 59rem" placeholder="Redeem script"
+                                        rows="5" id="get_multi_redeem"></textarea>
+                                    <p style="color: red;font-size: small;text-align: right;margin-top: 0px;">Remember
+                                        the
+                                        redeem script</p>
+                                    <p>Total of <span id="least_sign">*</span> public keys. Enter the minimum number of
+                                        signatures required: <input value="2" id="signs" type="number" min="1" max="3"
+                                            style="border-style: none; border-bottom: 1px solid;"></p>
+                                    <button id="gen_multi_sign">Go</button>
+                                    <button id="reset_multi_sign">Reset</button>
+                                    <button id="multi_sign_help">Help</button>
+                                    <p id="dis_multi_address"></p>
+                                </fieldset>
+                                <fieldset style="width: 60rem;padding: 1rem; border: 1px dotted #AAA; margin-top:2rem;">
+                                    <legend style="text-align: center; font-weight: 700">P2TR Key Path and Script Path
+                                        Addresses</legend>
+                                    <span style="display: block; margin-top: 10px;">Enter Internal Public Key:</span>
+                                    <input size="95" id="internalPublickey" placeholder="Compressed public key...">
+                                    <span style="display: block; margin-top: 10px;">Enter Merkle Binary Tree:</span>
+                                    <textarea style="word-break: break-all; width: 59rem"
+                                        placeholder="Format: [{script1},[[...],{script2}]], where 'script*' is the leaf script in assembly format"
+                                        rows="16" id="get_route_mast"></textarea><br>
+                                    <button id="gen_route_btn">Go</button>
+                                    <button id="reset_route_btn">Reset</button>
+                                    <button id="multi_route_help">Help</button>
+                                    <p id="dis_route_address"></p>
+                                    <fieldset style="width: 57.6rem;">
+                                        <legend>Possible Spending Methods</legend>
+                                        <div id="spend_p2tr_utxo"
+                                            style="word-break: break-all; font-size: 0.9rem;color: #666;">
+                                        </div>
+                                    </fieldset>
+                                </fieldset>
+                            </div>
+                        </details>
+
+                        <details class="child">
+                            <summary>Wallet Balance, UTXOs, and Transaction Details</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can query all UTXOs and the total balance of a wallet address, or enter
+                                        a transaction ID to query a specific transaction.
+                                    </p>
+                                </details>
+                                <hr />
+                                <input size="70" id="wallet_address"
+                                    placeholder="Enter wallet address or transaction ID...">
+                                <button id="wallet_balance_btn">Go</button>
+                                <p id="view_wallet_balance"></p>
+                                <table style="font-size: 0.9rem; color: gray;">
+                                    <tbody>
+                                        <tr style="line-height: 1.3rem;">
+                                            <td id="view_wallet_td0"></td>
+                                            <td style="text-align: right; padding-left: 2rem;" id="view_wallet_td1">
+                                            </td>
+                                            <td id="view_wallet_td2"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+                <details class="parent">
+                    <summary>Send Transaction</summary>
+                    <div class="window" style="overflow-y: scroll;">
+                        <details class="child">
+                            <summary>1. Create</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        You can initiate a transfer transaction here. The version, marker, lock time,
+                                        and flag in the transaction body generally do not need to be modified unless you
+                                        understand their exact purpose and truly need to change them. The main task in
+                                        creating a transaction is to add inputs and outputs. Inputs are the senders, and
+                                        outputs are the recipients. The Bitcoin-to-USD exchange rate is used to
+                                        calculate the transaction fee. For example, if you are willing to pay a $2 fee,
+                                        it will be automatically converted to "satoshis" based on the exchange rate. All
+                                        amounts in the transaction are in satoshis, where 1 Bitcoin equals 100 million
+                                        satoshis.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        A rough estimate of the transaction fee (in USD): 1 + (number of inputs * 0.8) +
+                                        (number of outputs * 0.5). For example, if your transaction has three inputs and
+                                        two outputs, the fee would be 1 + 3*0.8 + 2*0.5 = 4.4 USD. Higher fees result in
+                                        faster transaction processing, while lower fees may take longer, typically
+                                        within a few hours.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Steps: (1) First, set the fee (can be modified). (2) Do not modify the version,
+                                        marker, lock time, or flag unless you understand their exact meaning and truly
+                                        need to change them. (3) When adding inputs, query the available UTXOs for the
+                                        wallet address. Do not modify the sequence number or address type unless
+                                        necessary.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:red;font-size: small;">
+                                        It is recommended to use the Firefox browser and open this page in the browser's
+                                        private window.</p>
+                                </details>
+                                <hr><br>
+                                <p>I am willing to pay <input id="fee_dollars" value="1"
+                                        style="text-align: center;width: 3rem;border-style: none;border-bottom: 1px solid black;">
+                                    USD as the transaction fee (&nbsp;<b id="fee">0</b>&nbsp;satoshis). Note: The sum of
+                                    all input amounts equals the sum of all output amounts plus the fee.
+                                </p>
+                                <fieldset
+                                    style="background: url(images/tx.png) no-repeat #F0F0F0;height: 460px;width: 90rem; position: relative;">
+                                    <legend>Transaction Body</legend>
+                                    <input type="number" min="1" max="3" value="2" id="tx_version"
+                                        style="position: absolute;top: 36px;left: 120px;width: 8.5rem;background-color: transparent;border-style: none;font-size: 1rem;outline-style: none;">
+                                    <input type="number" min="0" max="1" value="0" id="tx_marker"
+                                        style="position: absolute;top: 36px;left: 402px;border-style: none;outline-style: none;background-color: transparent;font-size: 1rem;width: 40px;">
+                                    <input value="0" id="tx_locktime"
+                                        style="position: absolute;top: 68px;left: 120px;background-color: transparent;border-style: none;outline-style: none;font-size: 1rem;width: 8.5rem;">
+                                    <input type="number" min="0" max="1" value="1" id="tx_flag"
+                                        style="position: absolute;top: 68px;left: 402px;width: 40px;border-style: none;background-color: transparent;font-size: 1rem;">
+                                    <fieldset
+                                        style="position: absolute;top: 140px;left: 24px;width: 340px;background-color: white;min-height: 80px"
+                                        id="tx_ins" data-number="0">
+                                        <legend>Inputs</legend>
+                                    </fieldset>
+                                    <span
+                                        style="position: absolute;top: 156px;left: 782px;width: 17.5rem;text-align: center;">Recipient
+                                        Amount: <b id="tx_itInput">0</b> satoshis</span>
+                                    <span
+                                        style="position: absolute;top: 213px;left: 458px;width: 292px;text-align: center;">Total
+                                        Amount: <b id="tx_amount">0</b> satoshis</span>
+                                    <span
+                                        style="position: absolute;top: 248px;left: 782px;width: 14.5rem;text-align: center; font-size: 0.85rem">Fee:
+                                        <b id="tx_fee">0</b> satoshis (<b id="tx_fee_dollar">0</b> USD)</span>
+                                    <span style="position: absolute;top: 269px;left: 840px;color: red;font-size: small;"
+                                        id="tx_fee_alarm">Transaction fee too low</span>
+                                    <fieldset
+                                        style="position: absolute;top: 140px;left: 1070px;width: 340px;background-color: white;min-height: 80px"
+                                        id="tx_outs">
+                                        <legend>Outputs</legend>
+                                    </fieldset>
+                                </fieldset>
+                                <table style="width: 91.8rem;">
+                                    <tr style="vertical-align: top;">
+                                        <td style="border-right: black 1px solid; padding: 10px; width: 50%;">
+                                            <p style="text-align: center;margin-top: 0px;">Add Input</p>
+                                            <p style="margin-bottom: 0px;">My Wallet Address:</p>
+                                            <input id="tx_me_address" style="width: 560px;"
+                                                placeholder="Enter my wallet address...">
+                                            <select class="path" id="tx_me_type"
+                                                style="color: gray;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray; outline-style: none">
+                                                <option value="0">P2PK</option>
+                                                <option value="1">P2PKH</option>
+                                                <option value="2">P2SH</option>
+                                                <option value="3" selected>P2WPKH</option>
+                                                <option value="4">P2WSH</option>
+                                                <option value="5">P2TR</option>
+                                                <option value="6">Unknown Address</option>
+                                            </select>
+                                            <div id="redeem_script" style="display: none;">
+                                                <p style="margin-bottom: 0px;">Redeem Script:</p>
+                                                <textarea name="redeem" rows="3" cols="87"
+                                                    placeholder="Redeem script in assembly format..."></textarea>
+                                            </div>
+                                            <p style="margin-bottom: 0px;">Sequence Number:</p>
+                                            <input size="7" id="tx_me_sequnce" value="ffffffff"><br>
+                                            <button id="tx_me_utxo" style="margin-top: 8px;">Query
+                                                UTXOs</button><br><br>
+                                            <div id="no_network"
+                                                style="border: 1px solid#BBBBBB;padding: 4px;background-color: #F0F0F0; display: none;">
+                                                <p style="color: red; text-align: center">Unable to access the internet.
+                                                    Please manually enter UTXO information.</p>
+                                                <span>Transaction ID:</span><br><input id="manual_txId"
+                                                    placeholder="Transaction ID where the UTXO is located..."
+                                                    style="margin-bottom: 1rem; width: 680px"><br>
+                                                <span>Output Index:</span><br><input id="manual_index" size="5"
+                                                    style="margin-bottom: 1rem;"><br>
+                                                <span id="manual_txHex_tips" style="word-break: break-all;">Visit...,
+                                                    then paste the result below:</span><br>
+                                                <textarea id="manual_txHex" style="min-height: 10rem; width: 680px"
+                                                    placeholder="Enter the raw HEX-encoded string of the transaction..."></textarea>
+                                                <br><button>Add Input</button>
+                                            </div>
+                                            <table
+                                                style="font-size: 0.9rem; border-collapse: collapse;border:0px;margin: 0 auto;">
+                                                <tbody>
+                                                    <tr>
+                                                        <td colspan="2" id="tx_wallet_balance"
+                                                            style="text-align: center; border-bottom: 1px solid gray;">
+                                                        </td>
+                                                    </tr>
+                                                    <tr style="vertical-align: top;line-height: 1.5rem;color: #666;">
+                                                        <td id="tx_utxo_td0"
+                                                            style="text-align: right;border-right: 1px dotted #BBB;">
+                                                        </td>
+                                                        <td id="tx_utxo_td1"></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                        <td style="padding: 10px;">
+                                            <p style="margin-top: 0px; text-align: center;">Add Output</p>
+                                            <p style="margin-bottom: 0px;">Recipient's Wallet Address</p>
+                                            <input id="tx_he_address" style="width: 560px;"
+                                                placeholder="Enter recipient's wallet address...">
+                                            <select class="path" id="tx_he_type"
+                                                style="color: gray;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray; outline-style:none">
+                                                <option value="0">P2PK</option>
+                                                <option value="1">P2PKH</option>
+                                                <option value="2">P2SH</option>
+                                                <option value="3" selected>P2WPKH</option>
+                                                <option value="4">P2WSH</option>
+                                                <option value="5">P2TR</option>
+                                                <option value="6">OP_RETURN</option>
+                                                <option value="7" style="color: red">Invalid</option>
+                                            </select><br>
+                                            <div id="op_return_data" style="display: none;">
+                                                <p style="margin-bottom: 0px;">Content to store on the blockchain:</p>
+                                                <textarea id="op_data" rows="3" cols="87"
+                                                    placeholder="Cannot exceed 80 bytes (maximum 26 Chinese characters)..."></textarea>
+                                                <br><span>Byte Count:</span>
+                                            </div>
+                                            <p style="margin-bottom: 0px;">Amount:</p>
+                                            <input id="tx_he_amount"> satoshis<br>
+                                            <button id="tx_he_output" style="margin-top: 8px;">Add Output</button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>2. Sign</summary>
+                            <div style="position: relative;">
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Since signing requires the private key, it is recommended to disconnect from the
+                                        internet to ensure absolute security. When copying the private key, use
+                                        segmented copying.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Instructions: (1) Click the "Import Inputs" button to import the inputs added in
+                                        the previous step. (2) Check the inputs that need to be signed. (3) Enter the
+                                        private key. Note: One private key can sign multiple inputs at once, and one
+                                        input can be signed multiple times by different private keys. All inputs must be
+                                        signed.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:red;font-size: small;">
+                                        Since signing requires the private key, it is strongly recommended to: Use the
+                                        Firefox browser, open this page in the browser's private window, and ensure the
+                                        browser is in offline mode before signing. If you are unsure how to do this,
+                                        refer to the "Help" section below.
+                                    </p>
+                                </details>
+                                <hr>
+                                <button id="import_input">Import Inputs</button>
+                                <table id="sign_table" style="border-collapse: collapse;margin: 2rem 0px;">
+                                    <caption style="font-size: 1.3rem; font-weight: 700;">Signing Table</caption>
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="width:360px">Input</th>
+                                            <th colspan="10">Signing Status</th>
+                                            <th rowspan="2" style="width: 3rem">Select</th>
+                                        </tr>
+                                        <tr>
+                                            <th>1</th>
+                                            <th>2</th>
+                                            <th>3</th>
+                                            <th>4</th>
+                                            <th>5</th>
+                                            <th>6</th>
+                                            <th>7</th>
+                                            <th>8</th>
+                                            <th>9</th>
+                                            <th>10</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <div style="position: relative; width:688px;margin: 1rem 0;">
+                                    <span>Signature Type:</span>
+                                    <select class="path" id="sign_type"
+                                        style="color: gray;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray;">
+                                        <option value="0x01" selected>SIGHASH_ALL</option>
+                                        <option value="0x02">SIGHASH_NONE</option>
+                                        <option value="0x03">SIGHASH_SINGLE</option>
+                                        <option value="0x81">SIGHASH_ALL | SIGHASH_ANYONECANPAY</option>
+                                        <option value="0x82">SIGHASH_NONE | SIGHASH_ANYONECANPAY</option>
+                                        <option value="0x83">SIGHASH_SINGLE | SIGHASH_ANYONECANPAY</option>
+                                    </select><br>
+                                    <p style="margin-bottom: 0px;">Enter Private Key (WIF format or password-protected
+                                        private key):</p>
+                                    <span>
+                                        <input size="76" id="tx_private" type="password"
+                                            placeholder="Enter private key...">
+                                        <img src="images/closeeye.png" id="private_eye">
+                                    </span>
+                                    <p style="margin-bottom: 0px;">If the private key is password-protected, enter the
+                                        password:</p>
+                                    <span>
+                                        <input id="tx_password" size="30" type="password"
+                                            placeholder="Private key password...">
+                                        <img src="images/closeeye.png"
+                                            id="password_eye">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        N:<input id="N_sign" value="16384" style="width:4rem">&nbsp;&nbsp;&nbsp;r:<input
+                                            id="r_sign" style="width: 2rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;p:<input
+                                            id="p_sign" style="width:2rem" value="8">
+                                    </span>
+                                    <div style="border-bottom: 1px solid #CCC;margin-bottom: 4px;"></div>
+                                    <button id="tx_delete_sign" style="float: right;margin-left: 4px;">Delete
+                                        Signature</button>
+                                    <button id="tx_sign" style="float: right;" data-id="0">Sign</button>
+                                </div>
+                                <div style="position: absolute;width: calc(100% - 2rem);height: calc(100% - 230px);z-index: 100;top: 230px;background-color: rgba(255, 255, 255, 0.7); visibility: hidden"
+                                    id="sign_cover">
+                                    <p
+                                        style="font-size: 4rem;color: rgba(255,20,20,0.5);text-align: center;margin-top: 12%;text-shadow: -1px -1px #DDD, 1px 1px #333;">
+                                        Browser is not in offline mode. Cannot sign!</p>
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>3. Encode</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Convert the transaction body into Hex format for subsequent transaction
+                                        broadcasting!
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">Instructions: Simply
+                                        click the "Output Hex Format" button.
+                                    </p>
+                                </details>
+                                <hr>
+                                <button id="output_tx_hex" style="margin: 10px 0px 4px;">Output Hex Format</button>
+                                <div id="tx_hex"
+                                    style="width: 50rem; border: 1px solid gray; background-color: white;word-break: break-all;padding: 0.5rem;font-family: math;color: #666666; min-height: 3rem;">
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>4. Verify</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can deconstruct the Hex-encoded raw representation of transaction into
+                                        its components and
+                                        verify each field. Pay special attention to the recipient address, amount,
+                                        output script, and transaction fee.
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Instructions: By default, the Hex-encoded raw representation of transaction
+                                        generated in step 3 is
+                                        imported. You can also enter it separately.
+                                    </p>
+                                </details>
+                                <hr>
+                                <br><span>Hex-encoded raw representation of transaction:</span><br>
+                                <textarea id="txHex_edit" cols="100rem" style="min-height: 14rem;"
+                                    placeholder="Enter Hex-encoded raw representation of transaction..."></textarea><br>
+                                <button id="deconstruction_tx">Deconstruct</button>
+                                <p>Or directly visit these websites to deconstruct Hex-encoded raw transactions:</p>
+                                Bitcoin Mainnet: <a href="https://live.blockcypher.com/btc/decodetx/"
+                                    target="_blank">https://live.blockcypher.com/btc/decodetx/</a><br>
+                                Bitcoin Testnet: <a href="https://live.blockcypher.com/btc-testnet/decodetx/"
+                                    target="_blank">https://live.blockcypher.com/btc-testnet/decodetx/</a><br>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>5. Broadcast</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can broadcast the Hex-encoded raw representation of transaction to the
+                                        network. Miners will
+                                        accept and include it in a block. The transaction typically completes within
+                                        minutes or hours, but may fail depending on the fee you set. Higher fees result
+                                        in faster processing. Even after inclusion in a block, the transaction is not
+                                        100% confirmed until about 5-6 more blocks are added, which may take about two
+                                        hours.
+                                    </p>
+                                    <p style="color: rgb(238, 89, 89);font-size: small;">
+                                        There are two ways to broadcast a transaction: (1) Click the "Broadcast" button
+                                        directly, or (2) Broadcast it on the websites listed below.
+                                    </p>
+                                </details>
+                                <hr><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; position:relative" id="tx_raw_copy">
+                                    <legend>Hex-encoded raw representation of transaction</legend>
+                                    <p id="dispatch_raw_hex" contenteditable="true"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                    </p>
+                                    <input type="image" src="images/copy.png" title='Copy'
+                                        style="position:absolute;top: -10px;right: 1px;width: 20px;padding: 2px; visibility: hidden;">
+                                    <span
+                                        style="position: absolute;top: -8px;font-size: small;right: -20px;background-color: black;color: white;border-radius: 8px;padding: 1px; visibility: hidden;">Copied
+                                        successfully</span>
+                                </fieldset>
+                                <button id="dispatch_tx" style="margin: 4px 0px 1rem;">Broadcast</button><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; visibility:hidden">
+                                    <legend>Broadcast Result</legend>
+                                    <p id="dispatch_result"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                    </p>
+                                </fieldset>
+
+                                <p>Or directly visit these websites to broadcast transactions:</p>
+                                <fieldset>
+                                    <legend>Bitcoin Mainnet</legend>
+                                    <a href="https://blockchair.com/broadcast"
+                                        target="_blank">https://blockchair.com/broadcast</a><br>
+                                    <a href="https://live.blockcypher.com/btc/pushtx/"
+                                        target="_blank">https://live.blockcypher.com/btc/pushtx/</a><br>
+                                    <a href="https://www.blockchain.com/btc/pushtx"
+                                        target="_blank">https://www.blockchain.com/btc/pushtx</a>
+                                </fieldset><br>
+                                <fieldset>
+                                    <legend>Bitcoin Testnet</legend>
+                                    <a href="https://mempool.space/testnet4/tx/push"
+                                        target="_blank">https://mempool.space/testnet4/tx/push</a><br>
+                                    OS Command: curl -d '{"hex":"YOUR_RAW_TX_HEX"}'
+                                    https://blockstream.info/testnet/api/tx
+                                </fieldset>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            </div>
+            <div id="ethereum_html" style="position: absolute; top: 0px; width: 100%; visibility: hidden;">
+                <details class="parent" id="ethereum_wallet_management">
+                    <summary>Wallet Management</summary>
+                    <div class="window" style="overflow-y: scroll;">
+                        <details class="child">
+                            <summary>Create Wallet & Restore Wallet</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can manage Ethereum wallets. The same mnemonic with different passwords
+                                        will generate different Ethereum wallets. You can restore an HD wallet from a
+                                        mnemonic or derive public keys and addresses from an existing private key
+                                        (whether password-protected or not).<br>
+                                        1. To create a new wallet, first determine the number of mnemonic words (minimum
+                                        12, maximum 24; more words make it harder to guess) and the language of the
+                                        mnemonic (e.g., English, Simplified Chinese, etc.). The "mnemonic" + "mnemonic
+                                        password" can derive numerous private keys (one private key corresponds to one
+                                        wallet). Different passwords will derive different private keys even with the
+                                        same mnemonic, so it is recommended to protect the mnemonic with a password. The
+                                        "wallet path" is a string like "<i>m/44'/60'/i'/0/j...</i>", representing the
+                                        <i>j+1</i>th
+                                        wallet in the <i>i+1</i>th account, where <i>i</i> and <i>j</i> are integers
+                                        greater than or equal to
+                                        0. You can only change i and j or extend the path. For example, the default path
+                                        "m/44'/60'/0'/0/0" represents the 1st wallet in the 1st account,
+                                        "m/44'/60'/0'/0/5" represents the 6th wallet in the 1st account,
+                                        "m/44'/60'/3'/0/2" represents the 3rd wallet in the 4th account, and
+                                        "m/44'/60'/2'/0/1/3" represents the 4th sub-wallet under the 2nd node in the 3rd
+                                        account. However, it is recommended not to make the wallet path too long or
+                                        complex to avoid confusion or forgetting.<br>
+                                        If you input the Private Key Password, then the private key will be encrypted
+                                        using this password.<br>
+                                        2. To restore a wallet, there are two methods: (1) Restore from the "mnemonic
+                                        language," "mnemonic," "mnemonic password," and "wallet path" by entering the
+                                        language, mnemonic, password, and path used when creating the wallet. (2)
+                                        Restore the wallet address from a private key by entering the private key. If
+                                        the private key is encrypted, you also need to enter the "Private Key Password".
+                                    </p>
+                                    <p style="line-height: 1.8rem;color:red;font-size: small;">
+                                        If you plan to use the created wallet formally, be sure to remember the
+                                        mnemonic, mnemonic password (if any), wallet path, private key, Private Key
+                                        Password(if any), and address. It
+                                        is recommended to encrypt the private key. The address can be shared with
+                                        others for receiving coins, but all other information must never be disclosed.
+                                    </p>
+                                </details>
+                                <hr style="border-top: 1px;border: none;background-color: #bbb;height: 1px;"><br>
+                                <span style="width: 15rem; display: inline-block; text-align: right;">Number of Mnemonic
+                                    Words:</span> <input value="24" id="ethereum_mnemonic_length" type="number" min="12"
+                                    max="24" step="3"
+                                    style="width: 50px;text-align: center;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                                <span style="width: 15rem; display: inline-block; text-align: right;">Mnemonic
+                                    Language:</span> <select id="ethereum_new_language"
+                                    style="color: green;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none;">
+                                    <option value="en" selected="">English</option>
+                                    <option value="cn">Simplified Chinese</option>
+                                    <option value="tw">Traditional Chinese</option>
+                                    <option value="ja">Japanese</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                    <option value="it">Italian</option>
+                                    <option value="ko">Korean</option>
+                                    <option value="pt">Portuguese</option>
+                                    <option value="cz">Czech</option>
+                                </select><br>
+                                <p><span
+                                        style="width: 15rem; display: inline-block; text-align: right;">Mnemonic:</span>
+                                    <textarea id="ethereum_mnemonic"
+                                        style="width: 49rem;border: 1px dotted #DDD;border-bottom: 1px solid #888;color: green;outline-style: none;"
+                                        placeholder="Automatically generated mnemonic will appear here, or enter mnemonic to recover a wallet."></textarea>
+                                </p>
+                                <p><span style="width: 15rem; display: inline-block; text-align: right;">Mnemonic
+                                        Password:</span>
+                                    <input value="" id="ethereum_password" type="password"
+                                        style="width: 198px;border: none;border-bottom: 1px solid #888; color: green;outline-style: none;">
+                                    <img src="images/closeeye.png" id="ethereum_mnemonic_password_eye"
+                                        style="width: 16px;">
+                                </p>
+                                <p><span style="width: 15rem; display: inline-block; text-align: right;">Wallet
+                                        Path:</span> <input id="ethereum_new_path" value="m/44'/60'/0'/0/0"
+                                        style="width: 10rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;">
+                                    (Note: Path <i>m/44'/60'/i'/0/j</i> represents the <i>j</i>th wallet in the
+                                    <i>i</i>th account, where
+                                    <i>i,j=0,1,2,…</i>)
+                                </p>
+                                <p><span style="width: 15rem; display: inline-block; text-align: right;">Private
+                                        Key:</span> <input id="ethereum_new_privatekey"
+                                        style="width: 26rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password">
+                                    <span>　Private Key Password:
+                                        <input id="ethereum_new_private_password"
+                                            style="width: 11rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                            type="password">
+                                        <img src="images/closeeye.png" id="ethereum_new_password_eye"
+                                            style="width: 16px;">
+                                    </span>
+                                </p><br>
+                                <p style="width: 68rem;text-align: center;">
+                                    <button id="ethereum_new_wallet">Create Wallet</button>
+                                    <button id="ethereum_recover_wallet">Restore Wallet</button>
+                                    <button id="ethereum_reset_wallet">Reset</button>
+                                </p>
+                                <span>Ethereum Wallet:</span><br>
+                                <div id="ethereum_hd_wallet"
+                                    style="width: 66rem;border: 1px solid #999;padding: 1rem; "></div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>Wallet Balance & Transaction Details</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can query the balance of an Ethereum wallet or enter a transaction ID
+                                        to query a specific transaction.
+                                    </p>
+                                </details>
+                                <hr />
+                                <input size="70" id="ethereum_wallet_address"
+                                    placeholder="Enter wallet address or transaction ID...">
+                                <button id="ethereum_wallet_balance_btn">Go</button>
+                                <p id="ethereum_view_wallet_balance"></p>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+                <details class="parent">
+                    <summary>Send Transaction</summary>
+                    <div class="window" style="overflow-y: scroll;">
+                        <details class="child">
+                            <summary>1. Create</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        "Recipient Wallet Address" is the Ethereum address to which coins will be
+                                        transferred, such as "0xB8309ea73A7C61599bF33C73085D24511E042b06".<br>"Transfer
+                                        Amount" is the number of Ether to transfer, such as 0.005 Ether, or 0 Ether (if
+                                        you only want to store information in the remarks).<br>"Transaction Fee" is the
+                                        amount in USD you are willing to pay for this transfer, which will be deducted
+                                        from the sender's wallet in equivalent Ether. The fee is unrelated to the
+                                        transfer amount but may be related to the "remarks." If there are no remarks, a
+                                        transaction fee is typically around $5. Higher fees result in faster processing,
+                                        while fees below $1 may take longer or fail.<br>
+                                        "Wallet Private Key" is the private key of the sender's wallet, used for
+                                        signing. An unencrypted private key looks like
+                                        0x6b714fb46b3558192193712dd9dacabd0e29f75b02c81e21d4fc675f9d50719a, while an
+                                        encrypted private key looks like
+                                        6PYK8XSffZBgqqCMX2METG2VXUdAX5EfMDnCAV6D66B2dWQzdF4Za9Yspr.<br>
+                                        "Private Key Password" is used to decrypt the private key. If your private key
+                                        is encrypted, you must enter the password to decrypt it; otherwise, leave it
+                                        blank.<br>"Nonce" is the sequence number of the sender's wallet for outgoing
+                                        transactions. For a new wallet, the first outgoing transaction has a nonce of 0,
+                                        the second is 1, and so on. If the network is accessible, the nonce will be
+                                        obtained automatically; otherwise, it must be entered manually and cannot be
+                                        incorrect. You can query the nonce on third-party websites.<br>
+                                        "Transaction Type" defaults to 2 (EIP-1559), which is currently the most widely
+                                        used, with low fees. Do not modify this unless you fully understand the
+                                        implications.<br>"Gas Limit" defaults to 21000. If you add remarks, you must
+                                        increase the gas limit; otherwise, miners will ignore the transaction.<br>"Tip
+                                        to Miner" is specific to type 2 transactions. The tip is part of the
+                                        "Transaction Fee"—the amount you are willing to allocate to miners. The
+                                        difference between the transaction fee and the tip is transferred to the
+                                        0x0000000000000000000000000000000000000000 address, where the Ether is
+                                        permanently locked, effectively reducing circulation. Typically, the tip
+                                        accounts for over 90% of the transaction fee. The tip incentivizes miners to
+                                        process your transaction faster.<br>"Remarks" can contain up to 7000 Chinese
+                                        characters. If you want to permanently store information on the blockchain,
+                                        enter it here. More text increases the transaction fee, potentially costing tens
+                                        or hundreds of dollars.
+                                    </p>
+                                </details>
+                                <hr />
+                                <br><span style="display: inline-block;text-align: right;width: 8rem;">Wallet
+                                    Address:</span> <input id="ethereum_to"
+                                    style="width: 22rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="Recipient's wallet address..."><br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Transfer
+                                    Amount:</span> <input id="ethereum_value"
+                                    style="width: 12rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="Number of Ether to transfer..."> Ether<br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Wallet Private
+                                    Key:</span> <input id="ethereum_privateKey"
+                                    style="width: 22rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password">　Private Key Password: <span><input id="ethereum_private_password"
+                                        style="width: 11rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password"><img src="images/closeeye.png" id="ethereum_password_eye"
+                                        style="width: 16px;"></span><br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Nonce:</span> <input
+                                    id="ethereum_nonce" value="-1" disabled
+                                    style="width: 3rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="Sequence number"><br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Transaction
+                                    Type:</span> <select class="path" id="ethereum_tx_type"
+                                    style="color: green;width: 110px;border: none;background-color: transparent;border-bottom: 1px solid gray; outline-style: none">
+                                    <option value="0">0 (Legacy)</option>
+                                    <option value="1">1 (EIP-2930)</option>
+                                    <option value="2" selected="">2 (EIP-1559)</option>
+                                    <option value="3">3 (EIP-4844)</option>
+                                </select> (Do not modify unless necessary)<br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Gas Limit:</span>
+                                <input id="ethereum_gasLimit" value="21000"
+                                    style="width: 5rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Transaction
+                                    Fee:</span> <input id="ethereum_fee" value="5"
+                                    style="width: 5rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="Amount in USD..."> USD<br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Tip to Miner:</span>
+                                <input id="ethereum_priority_fee" value="4.9"
+                                    style="width: 5rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    placeholder="Amount in USD..."> USD (Tip is included in the transaction
+                                fee)<br>
+                                <span style="display: inline-block;text-align: right;width: 8rem;">Remarks:</span>
+                                <textarea id="ethereum_data" rows="5"
+                                    style="width: 44rem;border: none;border-bottom: 1px solid #888;border-top: 1px dotted #CCC;border-left: 1px dotted #CCC;border-right: 1px dotted #CCC;color: green;outline-style: none;margin-top: 4px;"
+                                    placeholder="Information stored on the blockchain, up to 7000 Chinese characters. More text increases the fee."></textarea><br>
+                                <p style="width: 47rem;text-align: right;">
+                                    <button id="ethereum_ok_transfer"
+                                        style="padding: 0px 1rem;background-color: gold;">Go</button>&nbsp;
+                                    <button id="ethereum_reset_transfer"
+                                        style="padding: 0px 1rem;background-color: greenyellow;">Reset</button>
+                                </p>
+                                <span>Transfer Result:</span><br>
+                                <div id="ethereum_result_transfer"
+                                    style="width: 50.5rem;border: 1px solid #999;padding: 1rem; word-break: break-all;">
+                                </div>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>2. Broadcast</summary>
+                            <div>
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Here you can broadcast the Hex-encoded transaction to the network. Miners will
+                                        accept and include it in a block. The transaction typically completes within
+                                        minutes but may fail depending on the fee. Higher fees result in faster
+                                        processing. Even after inclusion in a block, the transaction is not 100%
+                                        confirmed until about 5-6 more blocks are added, which may take several minutes.
+                                        There are two ways to broadcast a transaction: (1) Paste the Hex-encoded
+                                        transaction code into the input box and click the "Broadcast" button, or (2)
+                                        Broadcast it on the third-party websites listed below.<br>
+                                        Before broadcasting, it is recommended to click the "Decode" button to verify
+                                        all fields, especially the recipient address, transfer amount, and fee.
+                                    </p>
+                                </details>
+                                <hr><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; position:relative"
+                                    id="ethereum_tx_raw_copy">
+                                    <legend>Transaction Hex Raw Data</legend>
+                                    <p id="ethereum_dispatch_raw_hex" contenteditable="true"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                        Enter Hex-encoded raw representation of transaction here...
+                                    </p>
+                                </fieldset>
+                                <button id="ethereum_dispatch_tx" style="margin: 4px 0px 1rem;">Broadcast</button>
+                                <button id="ethereum_decode_tx" style="margin: 4px 0px 1rem;">Decode</button><br>
+                                <fieldset style="width: 50rem; margin-left: 0px; visibility:hidden">
+                                    <legend>Broadcast Result</legend>
+                                    <p id="ethereum_dispatch_result"
+                                        style="word-break: break-all;font-family: math;color: #666666;margin: 4px;">
+                                    </p>
+                                </fieldset>
+
+                                <p>Or directly visit these websites to broadcast transactions:</p>
+                                <fieldset>
+                                    <legend>Crypto Mainnet</legend>
+                                    <a href="https://blockchair.com/broadcast"
+                                        target="_blank">https://blockchair.com/broadcast</a><br>
+                                    <a href="https://live.blockcypher.com/btc/pushtx/"
+                                        target="_blank">https://live.blockcypher.com/btc/pushtx/</a><br>
+                                    <a href="https://www.blockchain.com/btc/pushtx"
+                                        target="_blank">https://www.blockchain.com/btc/pushtx</a>
+                                </fieldset><br>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            </div>
+            <div id="tool_html" style="position: absolute; top: 0px; width: 100%; visibility: hidden;">
+                <details class="child" id="encrypt_privatekey">
+                    <summary>Private Key Protection</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                Here you can encrypt a plaintext private key into a ciphertext private key or decrypt a
+                                ciphertext private key back to plaintext. Since private keys are extremely important, it
+                                is recommended to encrypt them for secure storage. As long as the password is not
+                                leaked, even if others obtain the ciphertext private key, they cannot sign transactions
+                                to steal your cryptocurrency. Before each signing, you must first decrypt the private
+                                key, so never forget the password! When copying and pasting private keys, do it in
+                                segments—for example, copy the first half, then manually enter a few characters, and
+                                finally copy the remaining half. This prevents clipboard spyware from stealing the
+                                private key. Do not change "CPU/Memory Cost," "Block Size," or "Parallelization" unless
+                                you understand their exact meaning and truly need to modify them.
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                After encrypting the private key, always verify that it can be decrypted. The
+                                "Password," "CPU/Memory Cost," "Block Size," and "Parallelization" must be identical for
+                                encryption and decryption, and remember any modified values!
+                            </p>
+                        </details>
+                        <hr /><br>
+                        Select Coin Type:&nbsp;<select id="select_cryptocurrency"
+                            style="text-align: center;border-style: none;background-color: transparent;outline-style: none;border-bottom: 1px solid black;color: red;">
+                            <option value="0" selected="">Bitcoin</option>
+                            <option value="60">Ethereum</option>
+                        </select><br>
+                        <div id="security" style="position: relative;">
+                            <textarea id="decryptKey"
+                                style="position: absolute;top: 28px;left: 100px;width: 330px;height: 110px;border: none;color: #17b909;resize: none"
+                                placeholder="Enter plaintext private key here."></textarea>
+                            <p id="format" style="position: absolute;top: 144px;left: 160px;color: gray;"></p>
+                            <div style="position: absolute; top: 58px;left: 536px;">
+                                <input id="password" type="password"
+                                    style="width: 114px;text-align: center;border: none;position: absolute;">
+                                <img id="eyes" src="images/closeeye.png"
+                                    style="position: absolute;left: 118px;width: 16px;top: 3px;" />
+                            </div>
+                            <button id="encrypt"
+                                style="position: absolute;top: 12px;left: 558px;width: 90px;border-radius: 10px;font-size: 1.2rem; background-color:#f2bac2; cursor: pointer;">Encrypt</button>
+                            <button id="decrypt"
+                                style="position: absolute;top: 93px;left: 558px;width: 90px;border-radius: 10px;font-size: 1.2rem;background-color:#c6f4a0; cursor: pointer;">Decrypt</button>
+                            <button id="clear"
+                                style="position: absolute;top: 140px;left: 562px;font-size: 1.1rem; cursor: pointer;">Clear
+                                Data</button>
+                            <textarea id="encryptKey"
+                                style="position: absolute;top: 28px;left: 786px;width: 330px;height: 110px;border: none;color: red;resize: none"
+                                placeholder="Enter ciphertext private key here."></textarea>
+                            <p id="notice"
+                                style="position: absolute;top: 144px;left: 850px;color: red; visibility: hidden;">
+                                Be sure to remember the ciphertext private key and password!!
+                            </p>
+                        </div>
+                        CPU/Memory Cost: <input id="N_id"
+                            value="16384">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Block Size: <input id="r_id"
+                            style="width: 3rem;"
+                            value="8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Parallelization: <input id="p_id"
+                            style="width:3rem" value="8">
+                    </div>
+                </details>
+                <details class="child" id="customize_mnemonic">
+                    <summary>Customize Mnemonic</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                A valid mnemonic has the last word as a checksum of the other words, so you cannot
+                                arbitrarily choose all words. The number of words is limited to 12, 15, 18, 21, or
+                                24.<br>
+                                Here you can customize the mnemonic (e.g., choose familiar words for easier
+                                memorization). Except for the last word, all other words can be specified. However, the
+                                more words you specify, the weaker the security, as manually chosen words lack
+                                randomness compared to system-generated mnemonics. Therefore, the principle is to
+                                specify as few words as possible.<br>
+                                Steps: First, determine the number of words in the mnemonic (more words enhance
+                                security). Next, select the mnemonic language (default is English). You can also choose
+                                Simplified Chinese, Japanese, or other languages, but English has better universal
+                                support. Then, specify certain words (except the last one). For example, specify the
+                                first five words as "love you very much really" in English or the 1st, 3rd, 5th, and 7th
+                                words as "中," "王," "大," "民" in Simplified Chinese. Finally, click the "Complete
+                                Mnemonic" button to generate a valid mnemonic.
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                Note: Always verify the final mnemonic in Bitcoin or Ethereum wallet management to
+                                ensure it correctly generates a wallet!
+                            </p>
+                        </details>
+                        <hr />
+                        <br><span style="display: inline-block;text-align: right;width: 12.2rem;">Number of Mnemonic
+                            Words:</span> <input value="12" id="customize_mnemonic_length" type="number" min="12"
+                            max="24" step="3"
+                            style="width: 50px;text-align: center;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                        <span style="display: inline-block;text-align: right;width: 12.2rem;">Mnemonic Language:</span>
+                        <select id="customize_new_language"
+                            style="color: green;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none;">
+                            <option value="en" selected="">English</option>
+                            <option value="cn">Simplified Chinese</option>
+                            <option value="tw">Traditional Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="it">Italian</option>
+                            <option value="ko">Korean</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="cz">Czech</option>
+                        </select><br><br>
+                        <fieldset style="width: 66rem;">
+                            <legend>Customize Mnemonic</legend>
+                            <div id="customize_mnemonic_words"
+                                style="line-height: 3rem; display: flex; flex-wrap: wrap;">
+                                <label class="mnemonic_customize_input">1.<input id="mnemonic_1"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">2.<input id="mnemonic_2"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">3.<input id="mnemonic_3"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">4.<input id="mnemonic_4"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">5.<input id="mnemonic_5"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">6.<input id="mnemonic_6"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">7.<input id="mnemonic_7"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">8.<input id="mnemonic_8"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">9.<input id="mnemonic_9"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">10.<input id="mnemonic_10"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">11.<input id="mnemonic_11"
+                                        class="mnemonic_customize"></label>
+                                <label class="mnemonic_customize_input">12.<input id="mnemonic_12"
+                                        class="mnemonic_customize" disabled style="border:3px solid #999;"></label>
+                            </div>
+                        </fieldset>
+                        <br>&nbsp;<button id="mnemonic_customize_btn">Complete Mnemonic</button>
+                        <button id="mnemonic_customize_reset">Reset</button>
+                        <p id="mnemonic_customize_result"></p>
+                    </div>
+                </details>
+                <details class="child" id="qrcode_manage">
+                    <summary>Generate QR Code</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                Create a QR code with public key, address, ENS domain name and other information to save
+                                on your phone, making it easy to send to others or scan.
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                Note: You can turn your private key or mnemonic phrase into a QR code, but never store
+                                it on mobile devices (such as phones, tablets, etc.) or scan it, as mobile devices are
+                                the least secure!</p>
+                        </details>
+                        <hr />
+                        <br>Content saved on the QR Code:<br>
+                        <textarea id="qrcode_content"
+                            placeholder="Enter the information that needs to be saved in the QR code..."
+                            style="width: 40rem; height: 5rem;padding: 1rem;"></textarea><br>
+                        QR Code Head:&nbsp;<input id="qrcode_title"
+                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
+                        &nbsp;&nbsp;Tail:&nbsp;<input id="qrcode_tail"
+                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;"><br><br>
+                        <button id="generate_qrcode_btn">Generate QR Code</button>
+                        <button id="qrcode_reset">Reset</button>
+                        <div style="width: 42rem;text-align: center;padding-top: 5rem;">
+                            <span id="qrcode_title_dis" style="font-size: 1.5rem; color: #999;">HEAD</span>
+                            <div id="qrcode" style="padding: 4px 13rem">
+                                <div
+                                    style="width: 256px; height: 256px; border: 1px dotted black; line-height: 256px; color: gray;">
+                                    QRCode</div>
+                            </div>
+                            <span id="qrcode_tail_dis" style="color: #999;">TAIL</span>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            <div id="help_html"
+                style="position: absolute;top: 0px;width: calc(100% - 4rem);visibility: hidden;background-color: white;padding: 2rem;height: 84vh;overflow-y: scroll;">
+                <h3 style="color: rgb(213, 5, 5);">Warning:</h3>
+                <p style="color: rgb(213, 5, 5); line-height: 1.5rem;">(1). Use the Firefox browser, which can be
+                    downloaded and installed <a href="https://www.mozilla.org/zh-CN/firefox/all/" target="_blank"
+                        class="online"> here
+                    </a>. Firefox is open-source and less likely to have backdoors.<br>
+                    (2). Use Firefox's private window (press Ctrl+Shift+P after launching Firefox to open a private
+                    window). Closing the private window destroys all browsing traces, ensuring your private keys remain
+                    secure.<br>
+                    (3). When generating, restoring, or signing transactions, remember always disconnect the browser
+                    from the internet
+                    (press Alt, click "File" in the top-left corner, then select "Work Offline"). This prevents private
+                    keys from being leaked over the network.<br>
+                    (4). When copying and pasting private keys, use the three-segment method: Copy and paste the first
+                    segment, manually enter the next few characters, and then copy and paste the remaining characters.
+                    This prevents clipboard spyware from stealing your private key. Refer to the image below:</p>
+                <img src="images/copy_pri.png" style="width: 800px;"><br><br>
+                <hr style="border-top: 1px;border: none;background-color: #bbb;height: 1px;"><br>
+                <h2>1. Introduction to Transactions</h2>
+                <p class="help">
+                    Let's start with a story: John saved some money after years of hard work but found no good
+                    investment opportunities in China. "At the very least, I want to preserve the value of my savings,"
+                    John thought. After careful consideration, he decided to invest in cryptocurrency, hearing that
+                    one Bitcoin could buy an apartment in a second-tier city in five years, so he chose Bitcoin.
+                    First, John needed a Bitcoin wallet. He registered an account on a cryptocurrency exchange,
+                    which automatically provided an online Bitcoin wallet (let's call it Wallet A), and then obtained an
+                    offline wallet (Wallet B). John bought Bitcoin through Wallet A and transferred it to Wallet B
+                    once the amount reached a certain threshold (e.g., equivalent to 100,000 dollars), as Wallet A was
+                    on a
+                    third-party platform and less secure, while Wallet B was known only to him. When selling Bitcoin, he
+                    transferred it from Wallet B to Wallet A first, then sold it on the platform. Besides online
+                    trading, there was also an offline channel. For example, John knew Alice, who had Bitcoin to
+                    sell. John contacted Alice to buy Bitcoin, transferred 100,000 RMB via WeChat, and Alice sent
+                    the Bitcoin directly to Wallet B.
+                </p>
+                <p class="help">Through this website, you can not only obtain Wallet B but also send coins offline, find
+                    where to get Wallet A, and locate offline sellers of cryptocurrency...</p>
+                <p class="help">
+                    In China, investing in cryptocurrency is the best way for ordinary people to achieve financial
+                    success. As of the end of 2024, one Bitcoin is worth $100,000, enough to buy an apartment
+                    in a third-tier city. It is certain that in five years, one Bitcoin will buy an apartment in a
+                    second-tier city, and in ten years, it will buy one in a first-tier city! Exciting, right? If so,
+                    read on...
+                <p class="help">So how exactly do you buy and sell cryptocurrencies? Stay tuned for the next episode...
+                    haha.</p>
+                <p class="help">
+                    First, you need at least a cryptocurrency wallet. The wallet contains an address. When you buy
+                    cryptocurrencies, you provide this address to the seller and say, "Hey, please send the coins to
+                    this address!" The seller might be cautious and reply, "Please double-check the address to ensure
+                    it's correct. Otherwise, if the coins are sent to the wrong address, it's entirely your
+                    responsibility!" So you carefully verify the wallet address again and reassure the seller, "The
+                    address is correct, don't worry!" After the seller completes the transfer, you can check whether the
+                    coins have been received by entering the address on a website like https://blockchair.com/.
+                </p>
+                <p class="help">
+                    As you continue to buy cryptocurrencies and watch the prices rise day by day, you estimate how much
+                    money you've earned. Your wealth grows gradually, and you slowly move up from being an ordinary
+                    person. One day, you finally make it big and can't help but shout, "Damn, I love this crazy world!
+                    Cheers to this inevitable life!"
+                </p>
+                <p class="help">How do you buy cryptocurrencies? Don’t rush; let me continue the story... On a dark and
+                    windy night, you arrive at the door of a small wooden cabin... haha!</p>
+                <p class="help">
+                    The wallet also contains a private key. When selling coins, you need to initiate a transfer
+                    transaction, sign it with this private key, and then broadcast the signed transaction online. A
+                    miner
+                    will eventually include your transaction in a block. Wait a few minutes, and the transaction will
+                    usually be completed. The higher the transaction fee you offer, the higher the processing priority.
+                    The fee goes to the miner, but nowadays, miners care more about the Mining rewards than the
+                    negligible
+                    transaction fee. You set the fee yourself when initiating the transaction, and it typically costs
+                    less than ten dollars. The fee amount is unrelated to the transfer amount. I once paid a fee of just
+                    $0.4, and the transaction was completed quickly. The fee isn’t paid in dollars but in the equivalent
+                    cryptocurrency. One bitcoin equals 100 million satoshis—i.e., 100,000,000 satoshis. At the current
+                    exchange rate (1 bitcoin = $100,000), $1 is roughly 1,000 satoshis, so $0.4 equals 400 satoshis. For
+                    example, if I initiate a transaction to sell 0.3 bitcoin to Alice with a $1 fee, the main
+                    transaction data would be: Li Si’s wallet address: xxxxx, amount: 30,000,000 satoshis, fee: 1,000
+                    satoshis. Alice can pay me $30,000 via bank transfer, WeChat, Alipay, or the equivalent in RMB
+                    (e.g., 210,000 RMB at an exchange rate of $1 = 7 RMB).
+                </p>
+                <p class="help">The address is derived from the private key, but the private key cannot be
+                    reverse-engineered from the address. The private key and address are a pair. Never share your
+                    private key with anyone—only the holder of the private key can sell the cryptocurrencies in the
+                    wallet!</p>
+                <p class="help">How do you get a wallet? Operate in the "Wallet Management" on this website. How do you
+                    initiate a transaction? Click "Offline Signing" and "Publish Transaction" there.</p>
+                <p class="help"><br><br></p>
+                <h2>2. Cryptocurrency Wallet</h2>
+                <p class="help" style="font-weight: 700; font-size: large">2.1 Private Key</p>
+                <p class="help">
+                    A private key is a cryptocurrency wallet! A private key is a 256-bit binary random number! Suppose
+                    you assign the obverse of a coin to 1 and otherwise to 0. If you toss a coin 256 times and record
+                    the results, you’ll
+                    have a decent private key, like this:</p>
+                <img src="images/pri.png" style="width: 900px;">
+                <p class="help">
+                    I tested the coin-tossing method to generate a private key. The recorded binary number is:
+                    1100111101001101000100000011000011111110110011100001000001110001101101110011001001000110011110010011110100000110110100111101000010001110101011010011100001010100100000011110111000101000110010111111011110110010001010000101100101110111001001111001100011010001.
+                    A 256-bit binary number is hard to remember, but converting it to hexadecimal makes it easier. For
+                    example, the hexadecimal equivalent of the above binary number is:
+                    cf4d1030fece1071b73246793d06d3d08ead385481ee28cbf7b22859772798d1. "Seriously? This is still hard to
+                    remember." "Well, why not just write it down?" Writing the private key on paper creates a paper
+                    wallet, memorizing it creates a brain wallet, and storing it digitally creates an electronic wallet.
+                    Both Bitcoin and Ethereum use 256-bit random binary numbers as private keys, so the same private key
+                    can initiate transactions for both. However, I advise against this because if you forget the private
+                    key, your cryptocurrencies are gone forever. Alternatively, if the private key is stolen, all your
+                    coins are at risk. Bitcoin experts recommend using a new private key for each transaction you
+                    receive! For example, use private key x to receive 3 bitcoins from John and private key y to
+                    receive 5 bitcoins from Alice. If Bob sends you coins, use another new private key. My
+                    suggestion is: follow the experts' advice for large transactions, but for small amounts, avoid using
+                    too many private keys to simplify management.
+                </p>
+                <p class="help">To make it easier to import private keys into wallet apps, Bitcoin converts hexadecimal
+                    private keys into Base58-encoded formats, known as WIF (Wallet Import Format). For example, the WIF
+                    format of the coin-tossing private key above is:
+                    L4AgDeoTPbdRd4S7X9UhXaNtyxZhDuj7EoUxPUndDYkvfmHjR8Cd.
+                    Binary, hexadecimal, and WIF-formatted private keys are interchangeable, so you only need to
+                    remember one. Note: hexadecimal letters are case-insensitive, but WIF private keys are strictly
+                    case-sensitive!</p>
+                <p class="help" style="color: rgba(222, 15, 15, 0.959)">
+                    Never share your private key with anyone—keep it to yourself! However, in case of an emergency, you
+                    might want to share it with family to prevent your cryptocurrencies from being lost forever... just
+                    saying.</p>
+                <p class="help">
+                    In practice, we don’t generate private keys by tossing coins but use computer programs instead.
+                    That’s all for private keys. If you want to learn more, check out my new book, "Cryptocurrency
+                    Secure Trading Practical Guide," available for download on my personal website.
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">2.2 Address</p>
+                <p class="help">
+                    The wallet address is derived from the public key, which in turn is derived from the private key.
+                    However, the public key cannot be reverse-engineered from the address, nor can the private key be
+                    derived from the public key. You can share your address with others—when buying cryptocurrencies,
+                    sellers send coins to this address, similar to online shopping where the seller ships goods to your
+                    address. Different cryptocurrencies derive addresses from private keys in different ways, resulting
+                    in different addresses. For example, Bitcoin and Ethereum addresses derived from the same private
+                    key are different. A Bitcoin address cannot receive Ethereum, and vice versa. If you mix them up,
+                    the coins will be lost forever—remember this! Even for the same cryptocurrency, there may be
+                    multiple address types over time. For example, Bitcoin addresses include P2PK, P2PKH, P2SH, P2WPKH,
+                    and P2TR (introduced in 2021). P2WPKH is currently the most popular due to smaller transaction data
+                    and lower fees. P2SH and P2TR support multi-signature transactions, ideal for organizations
+                    requiring multiple approvals (e.g., a company needing signatures from the CEO, CFO, and finance
+                    manager for transactions). The same private key can derive all address types. For example, I can
+                    derive all Bitcoin address types from one private key. When sending coins, I provide the recipient
+                    with the latest address type their wallet supports (e.g., P2WPKH for John’s wallet and P2PKH
+                    for Li Si’s older wallet).
+                </p>
+                <p class="help">
+                    For example, the following Bitcoin addresses are derived from the coin-tossing private key above
+                    (L4AgDeoTPbdRd4S7X9UhXaNtyxZhDuj7EoUxPUndDYkvfmHjR8Cd) using https://secretscan.org/:<br>　　P2PKH
+                    address: 1QKaUAoU2h9HUFyBpxFwrSZ4X4n4X2Xukp<br>　　P2SH address:
+                    35SbZDs5biwdSFFUTR5GTQSH2fkDX2GqQ8<br>　　P2WPKH address:
+                    bc1qll89rqfmzllnyd9cnzy8vex9jueqv86y6587wg<br>　　P2WSH address:
+                    bc1q0lsk5wd7kqr053lyzxmcdy2a07a7ntju4rjjwftutqsahg6u2gfqu6tp6v<br>　　P2TR address:
+                    bc1pgp2szey33f8eaqxd5hlulhmhd6dh8fz90zdgftr0var5jcs4vypsx5u8f6
+                </p>
+                <p class="help">
+                    I didn’t generate a P2PK address because it’s outdated and rarely used. P2PKH and P2SH addresses use
+                    Base58 encoding and are case-sensitive, while the latter three use Bech32 encoding and are
+                    lowercase-only.
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">2.3 Wallet Balance</p>
+                <p class="help">
+                    Ethereum has a balance concept, but Bitcoin does not. The balance shown in Bitcoin wallet apps is
+                    calculated temporarily—it’s the sum of all unspent transaction outputs (UTXOs). When you spend
+                    coins, you consume previously received UTXOs. Here’s an example:
+                </p>
+                <p class="help">
+                    Suppose your address received two transfers: 1 bitcoin from John and 0.5 bitcoin from Alice.
+                    Your wallet balance is now 1.5 bitcoin. Latter, you want to send 0.7 bitcoin to Jack. This requires
+                    spending the 1 bitcoin from John. The transaction data would look like this: Spend the
+                    100,000,000 satoshis (1 bitcoin) from John, send 70,000,000 satoshis (0.7 bitcoin) to Jack,
+                    pay a 1,000 satoshi fee, and return the remaining 29,999,000 satoshis to your address. After signing
+                    and publishing the transaction, John’s transfer is spent and excluded from future balance
+                    calculations. However, you now have a new UTXO of 0.29999 bitcoin, so your balance becomes 0.79999
+                    bitcoin.
+                </p>
+                <p class="help">
+                    In the above example, could I spend Li Si’s 0.5 bitcoin transfer instead? No, because it’s
+                    insufficient. But I could spend both John’s and Li Si’s transfers (totaling 1.5 bitcoin) and
+                    return the difference (0.79999 bitcoin) to my wallet (usually a different address to consolidate
+                    funds).
+                </p>
+                <p class="help">In summary, a Bitcoin wallet balance is the sum of all unspent transaction outputs
+                    (UTXOs).</p>
+                <p class="help"><br><br></p>
+                <h2>3. Offline Signing</h2>
+                <p class="help">
+                    A transfer transaction must be signed before publication. The private key is used to sign the
+                    transaction. Miners verify the signature before including the transaction in a block; otherwise,
+                    it’s discarded. To initiate a transfer, you must specify: (1) Which UTXOs to spend? (2) Which
+                    addresses to send coins to and how much? (3) Which address to return the remaining coins after
+                    deducting the fee?</p>
+                <p class="help"></p>The spent UTXOs are called inputs, and the recipients are called outputs.
+                Thus, the equation is: Total inputs = Total outputs + Transaction fee. A transaction includes
+                inputs, outputs, and input signatures. The fee is calculated by miners as the difference between
+                input and output amounts.
+                </p>
+                <p class="help"><br><br></p>
+                <h2>4. Private Key Management</h2>
+                <p class="help">Private keys are crucial, so managing them is a top priority. Forgetting a private key
+                    means losing your cryptocurrencies forever, and a stolen private key means your coins are at risk.
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">4.1 Encrypting Private Keys</p>
+                <p class="help">
+                    To prevent the private key from being stolen, it is highly recommended that you encrypt the private
+                    key. Even if someone obtains the encrypted key, they can’t
+                    use it without the decryption password. Miners reject unsigned transactions! The password should be
+                    strong (like a bank or email password), ideally 9+ characters with numbers, letters, and symbols.
+                    Store the encrypted key on paper, a computer, USB drive, cloud, or email. Weak passwords (e.g.,
+                    "123456") are risky, especially if the encrypted key is stored online. Use the "Private Key
+                    Protection"
+                    in the Tools Menu on the left side of the weibsite.
+                </p>
+                <br>
+                <p class="help" style="font-weight: 700; font-size: large">4.2 HD Wallets</p>
+                <p class="help">
+                    HD (Hierarchical Deterministic) wallets generate many private keys for easier management. Following
+                    the "best practice" of using a new private key for each transaction, HD wallets are ideal as
+                    transactions increase. The core idea is deriving multiple accounts and private keys from a set of
+                    words (the mnemonic phrase), typically 12, 15, 18, 21, or 24 words. More words mean greater
+                    security. For example: "asset curve boss naive trade never sister evoke what lunch glory update
+                    course acquire first mistake solve bullet pipe practice husband round glow wing" is a 24-word
+                    mnemonic. The last word includes a checksum, so don’t create your own phrase. You can add a password
+                    during account derivation for extra security. For example, two years ago, I used the mnemonic "poem
+                    crater dove table knock moment raccoon scrub color raccoon figure stumble" with password "A1b2C3&"
+                    to derive wallet #2 in account #5, where John sent 3 bitcoin. I noted: "poem crater dove table
+                    knock moment raccoon scrub color raccoon figure stumble/Account 5/Wallet 2" on paper, while
+                    memorizing the password. To spend the coins, I retrieve the private key by entering the mnemonic,
+                    password, account, and wallet number in "Wallet Management."
+                </p>
+                <p class="help"><br><br></p>
+                <h2>5. Best Practices</h2>
+                <p class="help">
+                    My personal recommendations:</p>
+                <p class="help">
+                    (1) For casual traders (under 10 transactions/year) with assets
+                    under one hundred thousand dollars : Use one password-protected private key, derive Bitcoin
+                    P2WPKH/P2PKH and Ethereum
+                    addresses.</p>
+                <p class="help">
+                    (2) For traders with $1M–$10M assets: Use one 18+ word mnemonic with a password, derive Bitcoin HD
+                    wallets (path: m/84'/0'/i'/0/j) and Ethereum HD wallets (path: m/44'/60'/i'/0/j). Limit to 1–2
+                    accounts with 2–3 wallets each.</p>
+                <p class="help">
+                    (3) For heavy investors ($10M+): Use separate mnemonics for each cryptocurrency (24 words) with 15+
+                    character passwords (mixed case, numbers, symbols). Use 3–5 accounts with multiple wallets. For
+                    large transactions (>$10M), use dedicated wallets and encrypt private keys. Sign transactions with
+                    encrypted keys and temporary passwords.
+                </p>
+                <br>
+                <p class="help">Good luck! If in doubt, feel free to send me an email, my email address is
+                    siguobao@gmail.com</p>
+            </div>
+        </main>
+        <footer style="visibility: hidden">FOOTER</footer>
+    </div>
+    <dialog id="wallet_dialog">
+        <h3 style="text-align: center;">My Dialog</h3>
+        <p></p>
+        <table>
+            <tbody>
+                <tr style="text-align: center;">
+                    <td id="tx_hd1" colspan="2" style="border-bottom: 1px dotted #999; border-right: 1px dotted #999;">
+                        Input</td>
+                    <td id="tx_hd2" colspan="2" style="border-bottom: 1px dotted #999;">Output</td>
+                </tr>
+                <tr style="line-height: 1.2rem; color: #333; font-size: 0.8rem;">
+                    <td id="tx_td1" style="text-align: right;vertical-align: top;border-bottom: 1px dotted #999;"></td>
+                    <td id="tx_td2"
+                        style="border-right: 1px dotted #999;vertical-align: top;padding-right: 4px;border-bottom: 1px dotted #999;">
+                    </td>
+                    <td id="tx_td3"
+                        style="text-align: right;vertical-align: top; padding-left: 4px;border-bottom: 1px dotted #999;">
+                    </td>
+                    <td id="tx_td4" style="vertical-align: top;border-bottom: 1px dotted #999;"></td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="text-align: center;"><button id="view_raw_tx">Raw Transaction Data</button><button type="button"
+                id="close_dialog">Close</button></p>
+        <p id="display_rawtx" style="width: 54rem; word-break: break-all; color: gray;"></p>
+    </dialog>
+    <dialog id="dialog_deconstruction_rawtx" style="overflow-x: hidden;width: 53rem;">
+        <h3 style="text-align: center;">Raw Transaction Data and Decoding</h3>
+        <p></p>
+        <fieldset style="width: 50rem;">
+            <legend>Hex-encoded raw representation of transaction</legend>
+            <div id="dis_raw_hex"
+                style="word-break: break-all;font-family: math;color: #666666;margin: 4px;max-height: 5rem;overflow-y: scroll;">
+            </div>
+        </fieldset><br>
+        <p>Transaction structure:</p>
+        <div id="dec_fee" style="color:blueviolet; font-size: small;"></div>
+        <table id="deconstruction_table">
+            <tbody>
+            </tbody>
+        </table>
+        <p style="text-align: center;"><button id="dialog_dec_close">Close</button></p>
+    </dialog>
+
+    <dialog
+        style="z-index: 9999;text-align: center;border-radius: 50%;border-style: none;position:relative;height: 120px;box-shadow: 0px 3px 8px 0px rgba(0, 0, 0, 0.3);overflow: clip;"
+        id="waiting">
+        <img src="images/doing.gif" style="width: 100px;position: absolute;z-index: 100;left: 36%;top: 30px;">
+        <div
+            style="position: absolute;background: repeating-linear-gradient(-45deg,#666666, #666666 4%,#EEEEEE 4%, #EEEEEE 8%);width: 100%;height: 2rem;top: 60px;left: 0px;">
+        </div>
+        <p style="font-size: small;margin-top: 74px;">Please wait, working...</p>
+    </dialog>
+
+    <div id="help"
+        style="overflow-y: scroll;width: 0px;height: 100%;border: 1px solid #DDD;position: fixed;background-color: white;top: 0px;right: 0px; transition: width 1s">
+        <input type="image" src="images/delete.png"
+            style="padding: 4px;position: absolute; top: 2rem; left: 2rem; width: 1rem;" class="tx_in_delete"
+            title="Hide window">
+        <h2 style="text-align: center; margin: 2.8rem 0px 0px;">Help Window</h2>
+        <hr>
+        <div id="help_content" style="padding: 1rem 2rem;"></div>
+    </div>
+    <div id="configure_global_parameters"
+        style="width: 100%;height: 100%;background-color: rgba(255, 239, 211, 0.7);position: fixed;top: 0px;left: 0px;">
+        <div
+            style="padding: 1rem;position: absolute;background-color: white;top: calc(50vh - 180px);left: calc(50vw - 240px);box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.2);">
+            <fieldset style="border: 1px solid #DDD;" id="bitcoin_gloabal_pars">
+                <legend style="color: gray;">Bitcoin:</legend>
+                Network:<select
+                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:8rem;">
+                    <option value="0" selected>Mainnet</option>
+                    <option value="1">Public Testnet</option>
+                    <option value="2">Local Testnet</option>
+                </select>
+                　　Exchange Rate (USD):<input value='100000'
+                    style="border-style: none;border-bottom: 1px solid black;text-align: center;color: green;width: 4rem;outline-style: none;">
+            </fieldset><br>
+            <fieldset style="border: 1px solid #DDD;" id="ethereum_gloabal_pars">
+                <legend style="color: gray;">Ethereum:</legend>
+                Network:<select
+                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none; width:8rem;">
+                    <option value="0" selected>Mainnet</option>
+                    <option value="1">Testnet</option>
+                </select>
+                　　Exchange Rate (USD):<input value='2500'
+                    style="border-style: none;border-bottom: 1px solid black;text-align: center;color: green;width: 4rem;outline-style: none;">
+            </fieldset><br>
+            <fieldset style="border: 1px solid #DDD;">
+                <legend style="color: gray;">Mnemonic Language:</legend>
+                <select id="grobal_pars_language"
+                    style="color: green;text-align: center;border-style: none;border-bottom: 1px solid black;background-color: transparent;outline-style: none;">
+                    <option value="en" selected="">English</option>
+                    <option value="cn">Simplified Chinese</option>
+                    <option value="tw">Traditional Chinese</option>
+                    <option value="ja">Japanese</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="it">Italian</option>
+                    <option value="ko">Korean</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="cz">Czech</option>
+                </select>
+            </fieldset><br>
+            <p style="text-align: center;"><button id="choose_net" style="font-size: 1rem;padding: 0 1rem;">OK</button>
+            </p>
+        </div>
+    </div>
+    <img id="cover_crypto" src="images/bitcoin_html.png"
+        style="position: fixed;z-index:9999;top: 20%;right: 20%;visibility: hidden">
+</body>
+<script src="js/binaryTree.js"></script>
+<script src="js/variables.js"></script>
+<script src="js/common.js"></script>
+<script src="js/bitcoin.js"></script>
+<script src="js/ethereum.js"></script>
+
+</html>

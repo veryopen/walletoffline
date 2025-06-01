@@ -305,7 +305,7 @@ function recover_wallet() {
     var account = new bip84.fromZPrv(account_ext_privatekey);
     let pri = account.getPrivateKey(parseInt(path1.split('/')[2]), path1.split('/')[1] == '1');
     let pub = account.getPublicKey(parseInt(path1.split('/')[2]), path1.split('/')[1] == '1');
-    let addr_p2wpkh = account.getAddress(parseInt(path1.split('/')[2]), path1.split('/')[1]=='1');
+    let addr_p2wpkh = account.getAddress(parseInt(path1.split('/')[2]), path1.split('/')[1] == '1');
 
     hd_more.accPri = account.getAccountPrivateKey();
     hd_more.accPub = account.getAccountPublicKey();
@@ -399,7 +399,7 @@ function storage_data(storage_data) {
     let data = content.toString('utf8');
     let inNode = document.createElement("div");
     inNode.setAttribute('class', 'txOut');
-    inNode.innerHTML = `存储内容：<span title='${data}'>${data}</span><br>入账金额：<b>0</b>聪<br><input type="image" src="images/delete.png" title="删除"
+    inNode.innerHTML = `存储内容：<span title='${data}'>${data}</span><br>入账金额：<b>0</b>聪<br><input type="image" src="../images/delete.png" title="删除"
                 style="float: right; padding: 2px;" class="tx_in_delete">`;
     document.getElementById('tx_outs').appendChild(inNode);
     inNode.querySelector('input').addEventListener('click', (ev) => {
@@ -516,9 +516,9 @@ function output2address(scriptPubKeyHex, isMainnet) {
     // **P2WPKH (bc1q / tb1q 开头)**
     if (scriptPubKey.length === 22 && scriptPubKey[0] === 0x00) {
         const decoded = bitcoin.script.decompile(scriptPubKey);
-        return bitcoin.address.toBech32(decoded[1],0,hrp);
-//        const pubKeyHash = scriptPubKey.slice(2, 22);
-//        return bech32.bech32.encode(hrp, bech32.bech32.toWords(pubKeyHash));
+        return bitcoin.address.toBech32(decoded[1], 0, hrp);
+        //        const pubKeyHash = scriptPubKey.slice(2, 22);
+        //        return bech32.bech32.encode(hrp, bech32.bech32.toWords(pubKeyHash));
     }
 
     // **P2WSH (bc1q / tb1q 开头)：必须是 34 字节长度，且前缀为 `0020`
@@ -674,4 +674,251 @@ function string2MerkleTree(merkleString) {
         }
     }
     return merkleTree;
+}
+
+//加密信息函数：
+async function encryptMessage(message, password) {
+    // 将密码转换为适合加密的密钥
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+
+    // 使用PBKDF2派生密钥
+    const baseKey = await crypto.subtle.importKey(
+        'raw',
+        passwordBuffer,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+
+    // 生成初始化向量(IV)
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // 加密消息
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: 'AES-GCM',
+            iv: iv
+        },
+        key,
+        encoder.encode(message)
+    );
+
+    // 组合salt、iv和加密数据
+    const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+    result.set(salt, 0);
+    result.set(iv, salt.length);
+    result.set(new Uint8Array(encrypted), salt.length + iv.length);
+
+    return result;
+}
+
+//解密信息函数：
+async function decryptMessage(encryptedData, password) {
+    // 分离salt、iv和加密数据
+    const salt = encryptedData.slice(0, 16);
+    const iv = encryptedData.slice(16, 28);
+    const data = encryptedData.slice(28);
+
+    // 将密码转换为适合加密的密钥
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+
+    // 使用PBKDF2派生密钥
+    const baseKey = await crypto.subtle.importKey(
+        'raw',
+        passwordBuffer,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+    );
+
+    // 解密数据
+    const decrypted = await crypto.subtle.decrypt(
+        {
+            name: 'AES-GCM',
+            iv: iv
+        },
+        key,
+        data
+    );
+
+    return new TextDecoder().decode(decrypted);
+}
+
+/*用password对message加密后隐写如图片的函数：
+imageElement - <img>元素对象
+messages - 被隐写的信息
+password - 加密密码
+*/
+async function hideEncryptedMessageInImage(imageElement, message, password) {
+    // 加密消息
+    const encryptedData = await encryptMessage(message, password);
+
+    // 将加密数据转换为二进制字符串
+    let msgBits = '';
+    for (const byte of encryptedData) {
+        msgBits += byte.toString(2).padStart(8, '0');
+    }
+    console.log(msgBits);
+    const msgTotalBits = msgBits.length.toString(2).padStart(32, '0') + msgBits;
+
+    // 创建画布
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imageElement.width;
+    canvas.height = imageElement.height;
+    ctx.drawImage(imageElement, 0, 0);
+
+    // 获取图像数据
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // 检查容量
+    if (msgTotalBits.length > imageData.data.length * 3 / 4) {
+        throw new Error('被隐写的信息太多！');
+    }
+
+    encodeMessage(imageData.data, msgTotalBits);
+
+    // 更新图像数据
+    ctx.putImageData(imageData, 0, 0);
+
+    // 返回包含加密消息的图片
+    return new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/png');
+    });
+}
+
+/*
+  把msgBits写入像素的RGB
+  imgPixels为uint8数组，每四个元素表示一个像素的RGBA
+  msgBits为二进制字符串，前32位表示被隐写信息的长度，从第32位开始就是被隐写信息
+*/
+function encodeMessage(imgPixels, msgBits) {
+    let j = 0;
+    for (let i = 0; i < msgBits.length; i++) {
+        imgPixels[j] = msgBits[i] === '0' ? (imgPixels[j] & 0xfe) : (imgPixels[j] | 1);
+        j++;
+        if (j % 4 == 3) {
+            j++;
+        }
+    }
+}
+
+//用password解密从图片中获取的信息：
+async function extractEncryptedMessageFromImage(imageElement, password) {
+    // 创建画布
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imageElement.width;
+    canvas.height = imageElement.height;
+    ctx.drawImage(imageElement, 0, 0);
+
+    // 获取图像数据
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    const encryptedData = decodeMessage(imageData.data);
+
+    // 解密数据
+    try {
+        const decrypted = await decryptMessage(encryptedData, password);
+        return decrypted;
+    } catch (error) {
+        throw new Error('Decryption failed - wrong password or corrupted data');
+    }
+}
+
+function decodeMessage(imgPixels) {
+    let msgLengthBits = '';
+    let j = 0;
+    for (let i = 0; i < 32; i++) {
+        msgLengthBits += imgPixels[j] & 1 == 1 ? "1" : "0";
+        j++;
+        if (j % 4 == 3) {
+            j++;
+        }
+    }
+    let msgLength = parseInt(msgLengthBits, 2);
+    let msgBits = '';
+    for (let i = 0; i < msgLength; i++) {
+        msgBits += (imgPixels[j] & 1) == 1 ? "1" : "0";
+        j++;
+        if (j % 4 == 3) {
+            j++;
+        }
+    }
+    const encryptedData = new Uint8Array(msgBits.length / 8);
+    for (let i = 0; i < msgBits.length; i += 8) {
+        encryptedData[i / 8] = parseInt(msgBits.slice(i, i + 8), 2);
+    }
+    return encryptedData;
+}
+
+/**
+ * 从共享密钥派生AES密钥
+ * @param {Buffer} sharedSecret 
+ * @returns {Promise<CryptoKey>}
+ */
+async function deriveAesKey(sharedSecret) {
+    // 使用HKDF算法从共享密钥派生AES密钥
+    const hkdfKey = await crypto.subtle.importKey(
+        'raw',
+        sharedSecret,
+        { name: 'HKDF' },
+        false,
+        ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: 'HKDF',
+            salt: new Uint8Array(0),
+            info: new Uint8Array(0),
+            hash: 'SHA-256'
+        },
+        hkdfKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+/**
+ * 格式化字节大小
+ * @param {number} bytes 
+ * @returns {string}
+ */
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }

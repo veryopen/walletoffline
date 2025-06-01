@@ -363,11 +363,11 @@ window.addEventListener("load", (evt) => {
     });
 
     document.getElementById('eyes').addEventListener('click', (e) => {
-        if (e.target.getAttribute('src') == 'images/closeeye.png') {
+        if (e.target.getAttribute('src') == '../images/closeeye.png') {
             e.target.setAttribute('src', 'images/openeye.png');
             document.getElementById("password").setAttribute("type", "text");
         } else {
-            e.target.setAttribute('src', 'images/closeeye.png');
+            e.target.setAttribute('src', '../images/closeeye.png');
             document.getElementById("password").setAttribute("type", "password");
         }
     })
@@ -415,7 +415,7 @@ window.addEventListener("load", (evt) => {
             document.getElementById('cover_crypto').setAttribute('src', `images/${et.currentTarget.dataset['id']}.png`);
             et.currentTarget.style.borderBottom = "#fff solid 2px";
             document.getElementById(et.currentTarget.dataset['id']).style.visibility = 'visible';
-            et.currentTarget.querySelector('figure').style.background = "url(images/current.png) right center no-repeat";
+            et.currentTarget.querySelector('figure').style.background = "url(../images/current.png) right center no-repeat";
             document.getElementsByTagName('main')[0].style.backgroundColor = et.currentTarget.style.backgroundColor;
             document.getElementsByTagName('body')[0].style.backgroundColor = et.currentTarget.style.backgroundColor;
         });
@@ -770,7 +770,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                         inNode.setAttribute('data-redeem', redeem_script);
                         inNode.innerHTML = `<span>交易ID：</span><a href="javascript:view_tx('${outx[i].tx_hash}')" style="text-decoration:none" title="${outx[i].tx_hash}">${outx[i].tx_hash}</a><br>
                     <span>序号：</span><b class='output_index'>${outx[i].tx_output_n}</b><br><span>金额：</span><b>${new Intl.NumberFormat('en-US').format(outx[i].value)}</b>聪<br>
-                    <span>顺序号：</span><b class='sequence'>${sequence}</b><br><span>地址：</span><code title="${address}">${address}</code><br><input type="image" src="images/delete.png" title="删除"
+                    <span>顺序号：</span><b class='sequence'>${sequence}</b><br><span>地址：</span><code title="${address}">${address}</code><br><input type="image" src="../images/delete.png" title="删除"
                                 style="float: right; padding: 2px;" class="tx_in_delete">`;
                         let box_ins = document.getElementById('tx_ins');
                         box_ins.appendChild(inNode);
@@ -866,7 +866,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         inNode.setAttribute('data-redeem', redeem_script);
         inNode.innerHTML = `<span>交易ID：</span><a href="javascript:view_tx('${tx_id}')" style="text-decoration:none" title="${tx_id}">${tx_id}</a><br>
         <span>序号：</span><b class='output_index'>${out_index}</b><br><span>金额：</span><b>${new Intl.NumberFormat('en-US').format(tx.outs[out_index].value)}</b>聪<br>
-        <span>顺序号：</span><b class='sequence'>${sequence}</b><br><span>地址：</span><code title="${address}">${address}</code><br><input type="image" src="images/delete.png" title="删除"
+        <span>顺序号：</span><b class='sequence'>${sequence}</b><br><span>地址：</span><code title="${address}">${address}</code><br><input type="image" src="../images/delete.png" title="删除"
                     style="float: right; padding: 2px;" class="tx_in_delete">`;
         let box_ins = document.getElementById('tx_ins');
         box_ins.appendChild(inNode);
@@ -1044,7 +1044,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         }
         let inNode = document.createElement("div");
         inNode.setAttribute('class', 'txOut');
-        inNode.innerHTML = `对方地址：<span title='${toAddress}'>${toAddress}</span><br>入账金额：<b>${new Intl.NumberFormat('en-US').format(toAmount)}</b>聪<br><input type="image" src="images/delete.png" title="删除"
+        inNode.innerHTML = `对方地址：<span title='${toAddress}'>${toAddress}</span><br>入账金额：<b>${new Intl.NumberFormat('en-US').format(toAmount)}</b>聪<br><input type="image" src="../images/delete.png" title="删除"
                     style="float: right; padding: 2px;" class="tx_in_delete">`;
         document.getElementById('tx_outs').appendChild(inNode);
         let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
@@ -1075,21 +1075,21 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
     document.getElementById('private_eye').addEventListener("click", (ev) => {
 
         if (ev.target.getAttribute('src') == 'images/openeye.png') {
-            ev.target.setAttribute('src', 'images/closeeye.png');
+            ev.target.setAttribute('src', '../images/closeeye.png');
             document.getElementById('tx_private').setAttribute('type', 'password');
         } else {
-            ev.target.setAttribute('src', 'images/openeye.png');
+            ev.target.setAttribute('src', '../images/openeye.png');
             document.getElementById('tx_private').setAttribute('type', 'text');
         }
     })
 
     document.getElementById('password_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', 'images/openeye.png');
+        ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('tx_password').setAttribute('type', 'text');
     })
 
     document.getElementById('password_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', 'images/closeeye.png');
+        ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('tx_password').setAttribute('type', 'password');
     })
 

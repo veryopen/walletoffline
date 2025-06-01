@@ -21,7 +21,7 @@
     <script src="js/bech32.min.js"></script><!--Import bech32 object-->
     <script src="js/bs58check.min.js"></script><!--Import bs58check object-->
     <script src="js/axios.min.js"></script><!--Import axios object for network requests-->
-    <script src="js/qrcode.min.js"></script>
+    <script src="js/qr-code-styling.js"></script>
     <!--script src="js/bip-schnorr.min.js"></script--><!--Import bipSchnorr object for Schnorr signatures-->
     <!--script src="js/tiny-secp256k1.js"></script -->
 
@@ -1114,7 +1114,12 @@
                         QR Code Head:&nbsp;<input id="qrcode_title"
                             style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
                         &nbsp;&nbsp;Tail:&nbsp;<input id="qrcode_tail"
-                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;"><br><br>
+                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
+                        <div style="width: 42rem;margin: 1.5rem 0px 3rem;">Select a small image:&nbsp;
+                            <input type="file" id="logo_file" accept="image/*"
+                                style="outline-style: none;border-bottom: 1px solid black;">
+                            <div id="logo_preview" style="float: right;"></div>
+                        </div>
                         <button id="generate_qrcode_btn">Generate QR Code</button>
                         <button id="qrcode_reset">Reset</button>
                         <div style="width: 42rem;text-align: center;padding-top: 5rem;">
@@ -1127,6 +1132,164 @@
                             <span id="qrcode_tail_dis" style="color: #999;">TAIL</span>
                         </div>
                     </div>
+                </details>
+                <details class="child" id="steganography_manage">
+                    <summary>Image Steganography</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                Hide some sensitive information in an image and then pass the image to others to achieve
+                                the purpose of exchanging sensitive information. Encryption is allowed before hiding; if
+                                others obtain the image but do not have the password, they still cannot access the
+                                information. </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+                                It is not recommended to transmit private keys in this manner; if it must be done this
+                                way, the private key should first be encrypted with a password.</p>
+                        </details>
+                        <hr />
+                        <br>Information hidden in the image:<br>
+                        <textarea id="steganography_content" placeholder="The hidden content..."
+                            style="width: 40rem; height: 5rem;padding: 1rem;"></textarea><br>
+                        Password:&nbsp;<span><input id="steganography_password" type="password"
+                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
+                            <img src="../images/closeeye.png" id="steganography_password_eye" style="width: 16px;"></span><br><br>
+                        Choose a Picture:&nbsp;
+                        <input type="file" id="steganography_file" accept="image/*"
+                            style="outline-style: none;border-bottom: 1px solid black;"><br>
+                        <img id="steganography_preview" style="display: none;max-width:256px;"><br>
+                        <button id="generate_steganography_btn">Encode</button>
+                        <button id="get_steganography_btn">Decode</button>
+                        <button id="clear_steganography_btn">Erase Hidden Information</button>
+                        <button id="steganography_reset">Reset</button><br>
+                    </div>
+                    <div
+                        style="position: absolute;background-color: white;border: 1px solid gray;box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.2);top: 10rem;left: 10rem; visibility: hidden">
+                        <img id="steganographyed_image">
+                        <p style="text-align: center;"><a href="#"
+                                style="border: 1px solid gray; padding: 4px;background-color: #eee; text-decoration: none;color: black; font-size: 0.89rem;">Save</a><button
+                                id="close_hidden_image">Close</button></p>
+                    </div>
+                </details>
+                <details class="child" id="sign_manage">
+                    <summary>Signature and Verification</summary>
+                    <div style="position: relative;">
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                Digital signatures are used to affirm the ownership of documents, similar to handwritten
+                                signatures in real life. A private key is used to sign, while a public key is used to
+                                verify the signature. The signed document cannot be changed; otherwise, the signature
+                                verification will fail. The other party must obtain the document, public key, and
+                                signature before being able to verify the signature. The private key must be a
+                                hex-encoded string, for example,
+                                c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2. The public key is also
+                                a hex-encoded string and must have the 0x prefix removed, for instance,
+                                02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4. Current popular
+                                signature algorithms include Schnorr, ECDSA, DSA, and RSA; Schnorr is more advanced, but
+                                currently, it is not as widely used as ECDSA. </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+
+                            </p>
+                        </details>
+                        <hr />
+                        Select the signed document:
+                        <input type="file" id="sign_file"
+                            style="outline-style: none;border-bottom: 1px solid black;"><br>
+                        Document summary:&nbsp;<div id="sign_digest"
+                            style="width: 50rem;height: 1rem;border: 1px solid #dddddd;padding: 4px;color: gray;text-align: center;">
+                        </div><br>
+                        Private Key:&nbsp;<input id="sign_privateKey"
+                            placeholder="A string in hexadecimal format (i.e. hex encoding) should have the prefix 0x removed."
+                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                            type="password"><br><br>Private key protection password:&nbsp;<span><input
+                                id="sign_private_password"
+                                style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password"><img src="../images/closeeye.png" id="sign_password_eye"
+                                style="width: 16px;"></span><br><br>
+                        Public Key:&nbsp;<input id="sign_publicKey"
+                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                        Signature algorithm:&nbsp;
+                        <label style="margin-right: 2rem;">ECDSA <input type="radio" name="algorithm" disabled></label>
+                        <label style="margin-right: 2rem;">Schnorr <input type="radio" name="algorithm" checked></label>
+                        <label style="margin-right: 2rem;">DSA <input type="radio" name="algorithm" disabled></label>
+                        <label>RSA <input type="radio" name="algorithm" disabled></label><br><br>
+                        Signature result:&nbsp;<br>
+                        <textarea id="sign_result" placeholder="签名……"
+                            style="width: 49rem;height: 2rem;padding: 12px;color: #666666;"></textarea><br>
+                        <button id="generate_sign_btn">Signature</button>
+                        <button id="virify_sign_btn">Virification</button>
+                        <button id="sign_reset">Reset</button>
+                        <img id="verify_result" src="images/sign_ok.png"
+                            style="position: absolute;top: 20rem;width: 110px;left: 30rem; visibility: hidden">
+                    </div>
+                    <div
+                        style="position: absolute;background-color: white;border: 1px solid gray;box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.2);top: 10rem;left: 10rem; visibility: hidden">
+                        <img id="steganographyed_image">
+                        <p style="text-align: center;"><a href="#"
+                                style="border: 1px solid gray; padding: 4px;background-color: #eee; text-decoration: none;color: black; font-size: 0.89rem;">Save
+                                Image</a><button id="close_hidden_image">Close</button></p>
+                    </div>
+                </details>
+                <details class="child" id="encrypt_manage">
+                    <summary>Encryption and Decryption</summary>
+                    <div style="position: relative;">
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">Encrypt the file with the public key and decrypt the file with the private key.
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+
+                            </p>
+                        </details>
+                        <hr />
+                        Select the encrypted file:&nbsp;
+                        <input type="file" id="encrypt_file"
+                            style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                        Private Key:&nbsp;<input id="encrypt_private_key"
+                            placeholder="A string in hexadecimal format (i.e. hex encoding) should have the prefix 0x removed."
+                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                            type="password"><br><br>Private key protection password:&nbsp;<span><input
+                                id="encrypt_private_password"
+                                style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password"><img src="../images/closeeye.png" id="encrypt_password_eye"
+                                style="width: 16px;"></span><br><br>
+                        Public Key:&nbsp;<input id="encrypt_publicKey" placeholder="32-byte compressed public key"
+                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                        <button id="encrypt_btn">Encryption</button>
+                        <button id="decrypt_btn">Decryption</button>
+                        <button id="encrypt_reset">Reset</button><br><br>
+                        Result:&nbsp;<br>
+                        <div id="encrypt_result"
+                            style="width: 50rem;border: 1px solid #dddddd;padding: 4px;color: gray;"></div>
+                    </div>
+                </details>
+                <details class="child" id="encode_manage">
+                    <summary>Conversion between UTF8 and HEX</summary>
+                    <div>
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                Converting UTF-8 text (such as Simplified Chinese) to hex encoding and vice versa.
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+
+                            </p>
+                        </details>
+                        <hr />
+                        <div style="position: relative;width: 100%;height: 26rem;">
+                            <fieldset style="position: absolute;width: 20rem;height: 20rem;">
+                                <legend>UTF8</legend>
+                                <textarea style="width: 100%; height: 100%; outline-style: none; border: none;color: #666666;" id="input_utf8"></textarea>
+                            </fieldset>
+                            <span style="position: absolute;left: 23rem; top: 7rem;">——<button id="encode_btn">Encode</button>→→</span>
+                            <span style="position: absolute;left: 23rem; top: 9rem;">←←<button id="decode_btn">Decode</button>——</span>
+                            <span style="position: absolute;left: 24.2rem; top: 11rem;">↓&nbsp;<button id="encode_reset" style="width: 62px;">Reset</button>&nbsp;↓</span>
+                            <fieldset style="position: absolute;width: 20rem;height: 20rem;left: 31rem;top: 0px;">
+                                <legend>HEX</legend>
+                                <textarea style="width: 100%; height: 100%; outline-style: none; border: none;color: #666666;" id="input_hex"></textarea>
+                            </fieldset>
+                        </div>
                 </details>
             </div>
             <div id="help_html"

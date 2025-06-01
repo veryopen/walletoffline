@@ -1048,8 +1048,9 @@
                         <textarea id="steganography_content" placeholder="被隐写的内容……"
                             style="width: 40rem; height: 5rem;padding: 1rem;"></textarea><br>
                         密码：<span><input id="steganography_password" type="password"
-                            style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
-                            <img src="../images/closeeye.png" id="steganography_password_eye" style="width: 16px;"></span><br>
+                                style="width: 10rem;border-style: none; outline-style: none; border-bottom: 1px solid black;">
+                            <img src="../images/closeeye.png" id="steganography_password_eye"
+                                style="width: 16px;"></span><br>
                         选择图片：
                         <input type="file" id="steganography_file" accept="image/*"
                             style="outline-style: none;border-bottom: 1px solid black;"><br>
@@ -1165,14 +1166,21 @@
                         <div style="position: relative;width: 100%;height: 26rem;">
                             <fieldset style="position: absolute;width: 20rem;height: 20rem;">
                                 <legend>UTF8</legend>
-                                <textarea style="width: 100%; height: 100%; outline-style: none; border: none;color: #666666;" id="input_utf8"></textarea>
+                                <textarea
+                                    style="width: 100%; height: 100%; outline-style: none; border: none;color: #666666;"
+                                    id="input_utf8"></textarea>
                             </fieldset>
-                            <span style="position: absolute;left: 23rem; top: 7rem;">——<button id="encode_btn">编码</button>→→</span>
-                            <span style="position: absolute;left: 23rem; top: 9rem;">←←<button id="decode_btn">解码</button>——</span>
-                            <span style="position: absolute;left: 24.2rem; top: 11rem;">↓&nbsp;<button id="encode_reset">清除</button>&nbsp;↓</span>
+                            <span style="position: absolute;left: 23rem; top: 7rem;">——<button
+                                    id="encode_btn">编码</button>→→</span>
+                            <span style="position: absolute;left: 23rem; top: 9rem;">←←<button
+                                    id="decode_btn">解码</button>——</span>
+                            <span style="position: absolute;left: 24.2rem; top: 11rem;">↓&nbsp;<button
+                                    id="encode_reset">清除</button>&nbsp;↓</span>
                             <fieldset style="position: absolute;width: 20rem;height: 20rem;left: 31rem;top: 0px;">
                                 <legend>HEX</legend>
-                                <textarea style="width: 100%; height: 100%; outline-style: none; border: none;color: #666666;" id="input_hex"></textarea>
+                                <textarea
+                                    style="width: 100%; height: 100%; outline-style: none; border: none;color: #666666;"
+                                    id="input_hex"></textarea>
                             </fieldset>
                         </div>
                 </details>
@@ -1432,6 +1440,8 @@
     </div>
     <img id="cover_crypto" src="images/bitcoin_html.png"
         style="position: fixed;z-index:9999;top: 20%;right: 20%;visibility: hidden">
+    <a href="https://github.com/veryopen/walletoffline" target="_blank"
+        style="position: fixed; bottom:1rem;right:1rem;">Walloffline on Github</a>
 </body>
 <script src="../js/binaryTree.js"></script>
 <script src="../js/variables.js"></script>

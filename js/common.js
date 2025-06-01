@@ -675,3 +675,215 @@ function string2MerkleTree(merkleString) {
     }
     return merkleTree;
 }
+
+async function encryptMessage(message, password) {
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+
+    const baseKey = await crypto.subtle.importKey(
+        'raw',
+        passwordBuffer,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: 'AES-GCM',
+            iv: iv
+        },
+        key,
+        encoder.encode(message)
+    );
+
+    const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+    result.set(salt, 0);
+    result.set(iv, salt.length);
+    result.set(new Uint8Array(encrypted), salt.length + iv.length);
+
+    return result;
+}
+
+async function decryptMessage(encryptedData, password) {
+    const salt = encryptedData.slice(0, 16);
+    const iv = encryptedData.slice(16, 28);
+    const data = encryptedData.slice(28);
+
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+
+    const baseKey = await crypto.subtle.importKey(
+        'raw',
+        passwordBuffer,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+    );
+
+    const decrypted = await crypto.subtle.decrypt(
+        {
+            name: 'AES-GCM',
+            iv: iv
+        },
+        key,
+        data
+    );
+
+    return new TextDecoder().decode(decrypted);
+}
+
+async function hideEncryptedMessageInImage(imageElement, message, password) {
+    const encryptedData = await encryptMessage(message, password);
+
+    let msgBits = '';
+    for (const byte of encryptedData) {
+        msgBits += byte.toString(2).padStart(8, '0');
+    }
+    console.log(msgBits);
+    const msgTotalBits = msgBits.length.toString(2).padStart(32, '0') + msgBits;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imageElement.width;
+    canvas.height = imageElement.height;
+    ctx.drawImage(imageElement, 0, 0);
+
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    if (msgTotalBits.length > imageData.data.length * 3 / 4) {
+        throw new Error('被隐写的信息太多！');
+    }
+
+    encodeMessage(imageData.data, msgTotalBits);
+    ctx.putImageData(imageData, 0, 0);
+    return new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/png');
+    });
+}
+
+function encodeMessage(imgPixels, msgBits) {
+    let j = 0;
+    for (let i = 0; i < msgBits.length; i++) {
+        imgPixels[j] = msgBits[i] === '0' ? (imgPixels[j] & 0xfe) : (imgPixels[j] | 1);
+        j++;
+        if (j % 4 == 3) {
+            j++;
+        }
+    }
+}
+
+async function extractEncryptedMessageFromImage(imageElement, password) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imageElement.width;
+    canvas.height = imageElement.height;
+    ctx.drawImage(imageElement, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  
+    const encryptedData = decodeMessage(imageData.data);
+
+    try {
+        const decrypted = await decryptMessage(encryptedData, password);
+        return decrypted;
+    } catch (error) {
+        throw new Error('Decryption failed - wrong password or corrupted data');
+    }
+}
+
+function decodeMessage(imgPixels) {
+    let msgLengthBits = '';
+    let j = 0;
+    for (let i = 0; i < 32; i++) {
+        msgLengthBits += imgPixels[j] & 1 == 1 ? "1" : "0";
+        j++;
+        if (j % 4 == 3) {
+            j++;
+        }
+    }
+    let msgLength = parseInt(msgLengthBits, 2);
+    let msgBits = '';
+    for (let i = 0; i < msgLength; i++) {
+        msgBits += (imgPixels[j] & 1) == 1 ? "1" : "0";
+        j++;
+        if (j % 4 == 3) {
+            j++;
+        }
+    }
+    const encryptedData = new Uint8Array(msgBits.length / 8);
+    for (let i = 0; i < msgBits.length; i += 8) {
+        encryptedData[i / 8] = parseInt(msgBits.slice(i, i+8), 2);
+    }
+    return encryptedData;
+}
+/**
+ * 从共享密钥派生AES密钥
+ * @param {Buffer} sharedSecret 
+ * @returns {Promise<CryptoKey>}
+ */
+async function deriveAesKey(sharedSecret) {
+    // 使用HKDF算法从共享密钥派生AES密钥
+    const hkdfKey = await crypto.subtle.importKey(
+        'raw',
+        sharedSecret,
+        { name: 'HKDF' },
+        false,
+        ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: 'HKDF',
+            salt: new Uint8Array(0),
+            info: new Uint8Array(0),
+            hash: 'SHA-256'
+        },
+        hkdfKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+/**
+ * 格式化字节大小
+ * @param {number} bytes 
+ * @returns {string}
+ */
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}

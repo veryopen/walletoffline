@@ -273,12 +273,43 @@ window.addEventListener("load", () => {
     });
 
     document.getElementById('ethereum_password_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', 'images/openeye.png');
+        ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('ethereum_private_password').setAttribute('type', 'text');
     })
     document.getElementById('ethereum_password_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', 'images/closeeye.png');
+        ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('ethereum_private_password').setAttribute('type', 'password');
+    })
+
+    document.getElementById('sign_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('sign_private_password').setAttribute('type', 'text');
+        document.getElementById('sign_privateKey').setAttribute('type', 'text');
+    })
+    document.getElementById('sign_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('sign_private_password').setAttribute('type', 'password');
+        document.getElementById('sign_privateKey').setAttribute('type', 'password');
+    })
+
+    document.getElementById('encrypt_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('encrypt_private_password').setAttribute('type', 'text');
+        document.getElementById('encrypt_private_key').setAttribute('type', 'text');
+    })
+    document.getElementById('encrypt_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('encrypt_private_password').setAttribute('type', 'password');
+        document.getElementById('encrypt_private_key').setAttribute('type', 'password');
+    })
+
+    document.getElementById('steganography_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('steganography_password').setAttribute('type', 'text');
+    })
+    document.getElementById('steganography_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('steganography_password').setAttribute('type', 'password');
     })
 
     document.getElementById('ethereum_mnemonic_password_eye').addEventListener("mousedown", (ev) => {
@@ -357,50 +388,420 @@ window.addEventListener("load", () => {
         document.getElementById('mnemonic_customize_reset').dispatchEvent(new Event('click'));
     })
 
+    document.getElementById('steganography_file').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const imgObj = document.getElementById('steganography_preview');
+                imgObj.src = reader.result;
+                imgObj.style.display = 'block';
+                //                img.style.cssText = "max-width: 700px; margin: 1rem 20rem;"
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('generate_steganography_btn').addEventListener('click', async (evt) => {
+        const message = document.getElementById('steganography_content').value.trim();
+        if (message == '') {
+            alert('Content cannot be empty!');
+            return;
+        }
+        const file = document.getElementById('steganography_file').files[0];
+        if (!file) {
+            alert('You must select an image!');
+            return;
+        }
+        const password = document.getElementById('steganography_password').value.trim();
+        //        const imgObj = document.getElementById('steganography_preview');
+        const imgObj = new Image();
+        imgObj.src = URL.createObjectURL(file);
+        imgObj.onload = async () => {
+            try {
+                const blob = await hideEncryptedMessageInImage(imgObj, message, password);
+                const resultImg = document.getElementById('steganographyed_image');
+                resultImg.src = URL.createObjectURL(blob);
+                resultImg.parentNode.style.visibility = 'visible';
+                resultImg.parentNode.querySelector('a').href = resultImg.src;
+                resultImg.parentNode.querySelector('a').download = 'hidden-message.png';
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    });
+
+    document.getElementById('get_steganography_btn').addEventListener('click', async () => {
+        const file = document.getElementById('steganography_file').files[0];
+        const password = document.getElementById('steganography_password').value;
+
+        if (!file) {
+            alert('Please select an image!');
+            return;
+        }
+
+        const imgObj = new Image();
+        imgObj.src = URL.createObjectURL(file);
+        imgObj.onload = async () => {
+            try {
+                const message = await extractEncryptedMessageFromImage(imgObj, password);
+                document.getElementById('steganography_content').value = message;
+                document.getElementById('steganography_content').style.borderColor = 'red';
+            } catch (error) {
+                document.getElementById('steganography_content').value = '';
+                alert('Error: ' + error.message);
+            }
+        }
+    });
+
+    document.getElementById('clear_steganography_btn').addEventListener('click', async () => {
+        const file = document.getElementById('steganography_file').files[0];
+
+        if (!file) {
+            alert('Please select an image!');
+            return;
+        }
+
+        const imgObj = new Image();
+        imgObj.src = URL.createObjectURL(file);
+        imgObj.onload = async () => {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imgObj.width;
+                canvas.height = imgObj.height;
+                ctx.drawImage(imgObj, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                for (let i = 0; i < imageData.data.length; i = i + 4) {
+                    imageData.data[i] &= 0xfe;
+                    imageData.data[i + 1] &= 0xfe;
+                    imageData.data[i + 2] &= 0xfe;
+                }
+                ctx.putImageData(imageData, 0, 0);
+                canvas.toBlob((blob) => {
+                    let aObj = document.createElement('a');
+                    aObj.href = URL.createObjectURL(blob);
+                    aObj.download = 'clear-message.png';
+                    aObj.innerText = 'Download the image without hidden information';
+                    document.getElementById('clear_steganography_btn').parentNode.appendChild(aObj);
+                }, 'image/png');
+            } catch (error) {
+                document.getElementById('steganography_content').value = '';
+                alert('Error: ' + error.message);
+            }
+        }
+    });
+
+    document.getElementById('steganography_reset').addEventListener('click', (evt) => {
+        //        document.getElementById("qrcode").innerHTML = '<div style="width: 256px; height: 256px; border: 1px dotted black; line-height: 256px; color: gray;">二维码</div>';
+        document.getElementById('steganography_content').value = '';
+        document.getElementById('steganography_content').style.borderColor = 'black';
+        document.getElementById('steganography_password').value = '';
+        document.getElementById('steganography_preview').setAttribute('src', '');
+        document.getElementById('steganography_file').value = '';
+        document.getElementById('steganographyed_image').setAttribute('src', '');
+    })
+
+    document.getElementById('close_hidden_image').addEventListener('click', (evt) => {
+        evt.target.parentNode.parentNode.style.visibility = 'hidden';
+    })
+
     init_ethereum();
     if (!provider) {
         console.log('Failed to initialize provider!');
     }
 
+    document.getElementById('logo_file').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                document.getElementById('logo_preview').innerHTML = '';
+                document.getElementById('logo_preview').appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+
+    document.getElementById('generate_qrcode_btn').addEventListener('click', (evt) => {
+        let content = document.getElementById('qrcode_content').value.trim();
+        if (content == '') {
+            alert('The content can not be empty!');
+            return;
+        }
+        document.getElementById("qrcode").innerHTML = '';
+        document.getElementById('qrcode_title_dis').innerHTML = document.getElementById('qrcode_title').value.trim();
+        document.getElementById('qrcode_tail_dis').innerHTML = document.getElementById('qrcode_tail').value.trim();
+        let image = '/images/default_qr.png';
+        let qr_logo = document.getElementById('logo_preview').querySelector('img');
+        if (qr_logo) {
+            image = qr_logo.getAttribute('src');
+        }
+        try {
+            const qrCode = new QRCodeStyling({
+                width: 256,
+                height: 256,
+                data: content,
+                image: image,
+                dotsOptions: {
+                    color: "#000",
+                    type: "rounded"
+                },
+                backgroundOptions: {
+                    color: "#fff",
+                },
+                imageOptions: {
+                    crossOrigin: "anonymous",
+                    margin: 4
+                }
+            });
+
+            qrCode.append(document.getElementById("qrcode"));
+        } catch (err) {
+            alert(err);
+        }
+    })
+
+    document.getElementById('qrcode_reset').addEventListener('click', (evt) => {
+        document.getElementById("qrcode").innerHTML = '<div style="width: 256px; height: 256px; border: 1px dotted black; line-height: 256px; color: gray;">QR Code</div>';
+        document.getElementById('qrcode_content').value = '';
+        document.getElementById('qrcode_title_dis').innerHTML = 'HEAD';
+        document.getElementById('qrcode_tail_dis').innerHTML = 'TAIL';
+        document.getElementById('qrcode_title').value = '';
+        document.getElementById('qrcode_tail').value = '';
+        document.getElementById('logo_preview').innerHTML = '';
+        document.getElementById('logo_file').value = '';
+
+    })
+
+    document.getElementById('sign_file').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const hash = bitcoin.crypto.sha256(reader.result);
+                document.getElementById('sign_digest').innerHTML = hash.toString('hex');
+            }
+            reader.readAsArrayBuffer(file);
+        }
+    });
+
+    document.getElementById('generate_sign_btn').addEventListener('click', (evt) => {
+        let digest = document.getElementById('sign_digest').innerText;
+        const hash = Uint8Array.from(Buffer.Buffer.from(digest, 'hex'));
+        let privateKeyHex = document.getElementById('sign_privateKey').value.trim();
+        if (privateKeyHex) {
+            if (privateKeyHex.slice(0, 2) == '6P') {
+                let password = document.getElementById('sign_private_password').value;
+                if (password == '') {
+                    privateKeyHex = null;
+                    alert('The private key has been encrypted, but no protection password for the private key has been provided!');
+                    return;
+                } else {
+                    try {
+                        if (!bip38.verify(privateKeyHex)) {
+                            throw new Error('Not a valid encryption private key!');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        let decryptKey = bip38.decrypt(privateKeyHex, password, null, { N: N, r: r, p: p });
+                        privateKeyHex = Buffer.Buffer.from(decryptKey.privateKey).toString('hex');
+                    } catch (error) {
+                        privateKeyHex = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+
+            const privateKey = Buffer.Buffer.from(privateKeyHex, 'hex');
+            const keyPair = ECPair.fromPrivateKey(privateKey);
+
+            const signature = bitcoinerlabsecp256k1.signSchnorr(hash, keyPair.privateKey);
+            document.getElementById('sign_result').value = Buffer.Buffer.from(signature).toString('hex');
+        }
+    })
+
+    document.getElementById('virify_sign_btn').addEventListener('click', (evt) => {
+        let publicKey = document.getElementById('sign_publicKey').value.trim();
+        let signature = document.getElementById('sign_result').value.trim();
+        let digest = document.getElementById('sign_digest').innerText;
+        if (!digest || !signature || !publicKey) {
+            alert('The signed document, public key, and signature are all essential!');
+            return;
+        }
+        publicKey = bitcoinerlabsecp256k1.xOnlyPointFromPoint(Buffer.Buffer.from(publicKey, 'hex'));
+        signature = Uint8Array.from(Buffer.Buffer.from(signature, 'hex'));
+        digest = Uint8Array.from(Buffer.Buffer.from(digest, 'hex'));
+        const isValid = bitcoinerlabsecp256k1.verifySchnorr(digest, publicKey, signature);
+        evt.target.parentNode.querySelector('#verify_result').style.visibility = 'visible';
+        evt.target.parentNode.querySelector('#verify_result').setAttribute('src', isValid ? 'images/sign_ok.png' : 'images/sign_failed.png');
+    })
+
+    document.getElementById('sign_reset').addEventListener('click', (evt) => {
+        document.getElementById('sign_file').value = '';
+        document.getElementById('sign_digest').innerHTML = '';
+        document.getElementById('sign_privateKey').value = '';
+        document.getElementById('sign_private_password').value = '';
+        document.getElementById('sign_publicKey').value = '';
+        document.getElementById('sign_result').value = '';
+        document.getElementById('verify_result').style.visibility = 'hidden';
+    })
+
+    var fileData;
+
+    document.getElementById('encrypt_btn').addEventListener('click', async (evt) => {
+        const publicKey = document.getElementById('encrypt_publicKey').value.trim();
+        const file = document.getElementById('encrypt_file').files[0];
+        if (!file || !publicKey) {
+            alert('No file selected or no public key!');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            fileData = reader.result;
+        }
+        reader.readAsArrayBuffer(file);
+        const originalSize = file.size;
+        const ephemeralKeyPair = ECPair.makeRandom();
+        const ephemeralPublicKey = ephemeralKeyPair.publicKey.toString('hex');
+
+        const recipientPublicKey = Buffer.Buffer.from(publicKey, 'hex');
+        const sharedSecret = Buffer.Buffer.from(bitcoinerlabsecp256k1.pointMultiply(recipientPublicKey, ephemeralKeyPair.privateKey));
+
+        const aesKey = await deriveAesKey(sharedSecret);
+
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encryptedContent = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv },
+            aesKey,
+            fileData
+        );
+
+        const result = new Uint8Array(33 + 12 + encryptedContent.byteLength);
+        result.set(ephemeralKeyPair.publicKey, 0);
+        result.set(iv, 33);
+        result.set(new Uint8Array(encryptedContent), 45);
+
+        const blob = new Blob([result], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+
+        document.getElementById('encrypt_result').innerHTML = `
+            Encryption successful!<br>
+            Original file size:&nbsp;${formatBytes(originalSize)}<br>
+            Size after encryption:&nbsp;${formatBytes(result.length)}<br>
+            Temporary key used for encryption:&nbsp;${ephemeralPublicKey}<br>
+            <a href="${url}" download="(Encrypted)${file.name}">Download the encrypted file</a>
+        `;
+    });
+
+
+    document.getElementById('decrypt_btn').addEventListener('click', (evt) => {
+        document.getElementById('encrypt_result').innerHTML = '';
+        const file = document.getElementById('encrypt_file').files[0];
+        let privateKeyHex = document.getElementById('encrypt_private_key').value.trim();
+        if (!file || !privateKeyHex) {
+            alert('No encrypted files or private keys!');
+            return;
+        }
+        if (privateKeyHex) {
+            if (privateKeyHex.slice(0, 2) == '6P') {
+                let password = document.getElementById('encrypt_private_password').value;
+                if (password == '') {
+                    privateKeyHex = null;
+                    alert('The private key has been encrypted, but no protection password for the private key has been provided!');
+                    return;
+                } else {
+                    try {
+                        if (!bip38.verify(privateKeyHex)) {
+                            throw new Error('Not a valid encryption private key!');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        let decryptKey = bip38.decrypt(privateKeyHex, password, null, { N: N, r: r, p: p });
+                        privateKeyHex = Buffer.Buffer.from(decryptKey.privateKey).toString('hex');
+                    } catch (error) {
+                        privateKeyHex = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async function (e) {
+                    const encryptedArray = new Uint8Array(reader.result);
+                    if (encryptedArray.length < 45) {
+                        throw new Error('Invalid encrypted file format');
+                    }
+                    const ephemeralPublicKey = encryptedArray.slice(0, 33);
+                    const iv = encryptedArray.slice(33, 45);
+                    const ciphertext = encryptedArray.slice(45);
+
+                    const keyPair = ECPair.fromPrivateKey(Buffer.Buffer.from(privateKeyHex, 'hex'));
+                    const sharedSecret = Buffer.Buffer.from(bitcoinerlabsecp256k1.pointMultiply(ephemeralPublicKey, keyPair.privateKey));
+
+                    const aesKey = await deriveAesKey(sharedSecret);
+
+                    const decryptedContent = await crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv },
+                        aesKey,
+                        ciphertext
+                    );
+
+                    const decryptedArray = new Uint8Array(decryptedContent);
+                    const blob = new Blob([decryptedArray], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+
+                    document.getElementById('encrypt_result').innerHTML = `
+                        Decryption successful!<br>
+                        File size:&nbsp;${formatBytes(decryptedArray.length)}<br>
+                        <a href="${url}" download="decrypted_file.${document.getElementById('encrypt_file').value.split('.')[1]}">Download the encrypted file</a>
+                    `;
+                }
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                alert('Error occurred while decrypting the file:' + error.message);
+            }
+        }
+    })
+
+    document.getElementById('encrypt_reset').addEventListener('click', (evt) => {
+        document.getElementById('encrypt_file').value = '';
+        document.getElementById('encrypt_private_key').value = '';
+        document.getElementById('encrypt_private_password').value = '';
+        document.getElementById('encrypt_publicKey').value = '';
+        document.getElementById('encrypt_result').innerHTML = '';
+    })
+
+    document.getElementById('encode_btn').addEventListener('click', (evt) => {
+        document.getElementById('input_hex').value = ethers.hexlify(ethers.toUtf8Bytes(document.getElementById('input_utf8').value.trim()));
+    })
+
+    document.getElementById('decode_btn').addEventListener('click', (evt) => {
+        document.getElementById('input_utf8').value = ethers.toUtf8String((document.getElementById('input_hex').value.trim()));
+    })
+    document.getElementById('encode_reset').addEventListener('click', (evt) => {
+        document.getElementById('input_utf8').value = '';
+        document.getElementById('input_hex').value = '';
+    })
+
+    document.getElementById('customize_new_language').addEventListener('change', (evt) => {
+        document.getElementById('ethereum_new_language').value = evt.target.value;
+        document.getElementById('ethereum_new_language').dispatchEvent(new Event('change'));
+        document.getElementById('mnemonic_customize_reset').dispatchEvent(new Event('click'));
+    })
 });
 
-document.getElementById('generate_qrcode_btn').addEventListener('click', (evt) => {
-    let content = document.getElementById('qrcode_content').value.trim();
-    if (content == '') {
-        alert('The content can not be empty!');
-        return;
-    }
-    document.getElementById("qrcode").innerHTML = '';
-    document.getElementById('qrcode_title_dis').innerHTML = document.getElementById('qrcode_title').value.trim();
-    document.getElementById('qrcode_tail_dis').innerHTML = document.getElementById('qrcode_tail').value.trim();
-
-    try {
-        new QRCode(document.getElementById("qrcode"), {
-            text: content,
-            width: 256,
-            height: 256,
-            //            colorDark: "#000000",
-            //            colorLight: "#ffffff",
-            //correctLevel: QRCode.CorrectLevel.H
-        });
-    } catch (err) {
-        alert(err);
-    }
-})
-
-document.getElementById('qrcode_reset').addEventListener('click', (evt) => {
-    document.getElementById("qrcode").innerHTML = '<div style="width: 256px; height: 256px; border: 1px dotted black; line-height: 256px; color: gray;">QR Code</div>';
-    document.getElementById('qrcode_content').value = '';
-    document.getElementById('qrcode_title_dis').innerHTML = 'HEAD';
-    document.getElementById('qrcode_tail_dis').innerHTML = 'TAIL';
-    document.getElementById('qrcode_title').value = '';
-})
-
-document.getElementById('customize_new_language').addEventListener('change', (evt) => {
-    document.getElementById('ethereum_new_language').value = evt.target.value;
-    document.getElementById('ethereum_new_language').dispatchEvent(new Event('change'));
-    document.getElementById('mnemonic_customize_reset').dispatchEvent(new Event('click'));
-})
 
 function ethereum_recover_wallet() {
     wallets.mnemonic = document.getElementById('ethereum_mnemonic').value.trim();

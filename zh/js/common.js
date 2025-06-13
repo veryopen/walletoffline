@@ -390,6 +390,7 @@ async function getTxDetail(txHash, isTestNetwork, isRaw) {
     }
 }
 
+//在区块链上存储数据资料。
 function storage_data(storage_data) {
     let content = Buffer.Buffer.from(storage_data, 'utf8');
     if (content.length > 80) {

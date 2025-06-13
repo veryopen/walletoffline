@@ -37,6 +37,8 @@ var isTestNet_bitcoin = false;//以太币网络
 var bitcoin_language = bip39.wordlists.english;
 var canFetchRawTX = false;//能否获取交易的原始hex码？
 
+var lang = 'en';
+
 //以太坊全局变量：
 var signer = null;
 var provider = null;

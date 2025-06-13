@@ -12,7 +12,8 @@ window.addEventListener("load", (evt) => {
             path.push('zh');
             pathname = path.join('/');
         }
-        window.open( location.origin + pathname, '_self');
+        localStorage.setItem('lang', evt.target.value);
+        window.open( location.origin + pathname + '/index.html', '_self');
     })
 
     document.getElementById('choose_net').addEventListener('click', (ev) => {
@@ -210,6 +211,15 @@ window.addEventListener("load", (evt) => {
         });
     });
 
+    document.getElementById('bitcoin_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('seed_password').setAttribute('type', 'text');
+    })
+    document.getElementById('bitcoin_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('seed_password').setAttribute('type', 'password');
+    })
+
     document.getElementById('new_wallet').addEventListener('click', (ev) => {
         wallets.mnemonic = bip84.generateMnemonic(parseInt(document.getElementById('mnemonic_length').value) * 32 / 3, null, bitcoin_language);;
         document.getElementById('mnemonic').value = wallets.mnemonic;
@@ -362,15 +372,15 @@ window.addEventListener("load", (evt) => {
         }
     });
 
-    document.getElementById('eyes').addEventListener('click', (e) => {
-        if (e.target.getAttribute('src') == '../images/closeeye.png') {
-            e.target.setAttribute('src', 'images/openeye.png');
-            document.getElementById("password").setAttribute("type", "text");
-        } else {
-            e.target.setAttribute('src', '../images/closeeye.png');
-            document.getElementById("password").setAttribute("type", "password");
-        }
+    document.getElementById('eyes').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('password').setAttribute('type', 'text');
     })
+    document.getElementById('eyes').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('password').setAttribute('type', 'password');
+    })
+
     document.getElementById('clear').addEventListener('click', (e) => {
         document.getElementById('decryptKey').value = '';
         document.getElementById('encryptKey').value = '';
@@ -412,7 +422,7 @@ window.addEventListener("load", (evt) => {
                 //                document.querySelector('#wallet_management>div').appendChild(document.getElementById('encrypt_privatekey'));
                 cryptoType = 0;
             }
-            document.getElementById('cover_crypto').setAttribute('src', `images/${et.currentTarget.dataset['id']}.png`);
+            document.getElementById('cover_crypto').setAttribute('src', `../images/${et.currentTarget.dataset['id']}.png`);
             et.currentTarget.style.borderBottom = "#fff solid 2px";
             document.getElementById(et.currentTarget.dataset['id']).style.visibility = 'visible';
             et.currentTarget.querySelector('figure').style.background = "url(../images/current.png) right center no-repeat";
@@ -1014,7 +1024,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
     })
 
     document.getElementById('tx_he_output').addEventListener('click', (ev) => {
-        if (document.getElementById('tx_he_type').value == '6') {
+        if (document.getElementById('tx_he_type').value == '6') {//OP_RETURN
             let data = document.getElementById('op_data').value.trim();
             if (data != '') {
                 storage_data(data);
@@ -1072,15 +1082,14 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         document.getElementById('tx_he_amount').value = '';
     })
 
-    document.getElementById('private_eye').addEventListener("click", (ev) => {
+    document.getElementById('private_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('tx_private').setAttribute('type', 'text');
+    })
 
-        if (ev.target.getAttribute('src') == 'images/openeye.png') {
-            ev.target.setAttribute('src', '../images/closeeye.png');
-            document.getElementById('tx_private').setAttribute('type', 'password');
-        } else {
-            ev.target.setAttribute('src', '../images/openeye.png');
-            document.getElementById('tx_private').setAttribute('type', 'text');
-        }
+    document.getElementById('private_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('tx_private').setAttribute('type', 'password');
     })
 
     document.getElementById('password_eye').addEventListener("mousedown", (ev) => {

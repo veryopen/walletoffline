@@ -16,10 +16,10 @@
 <p>Method 2: Browser https://www.walletoffline.com/btceth/ to open the offline wallet site, then switch your browser to offline mode or physically disconnect from the internet. This makes it safer for actual use, as private keys cannot be leaked online.</p>
 
 <p>Method 3: Download the offline wallet to your local hard drive. You can then open the page offline to perform wallet and transaction operations securely.</p>
-
+<p>If you want to know more about it, please visit our official website https://www.walletoffline.com. There are detailed installation and usage methods there, and we are waiting for you there.</p>
 <h1>What are the advantages?</h1>
 
 ![image](https://github.com/user-attachments/assets/824791fd-2847-4ba3-9d27-251a117f7e69)
 
-<h3 style="color: red">If you want to know more about it, please visit our official website https://www.walletoffline.com</h3>
+
 

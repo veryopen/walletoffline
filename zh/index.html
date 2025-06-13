@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="./styles/common.css" rel="stylesheet">
     <link href="./styles/ethereum.css" rel="stylesheet">
-    <title>加密币安全交易实战</title>
+    <title>开放离线钱包</title>
 
     <!--1. 比特币js库-->
     <script src="../js/bitcoinjs-lib.min.js"></script><!--导入bitcoin对象-->
@@ -24,21 +24,23 @@
     <script src="../js/qr-code-styling.js"></script>
     <!--script src="js/bip-schnorr.min.js"></script--><!--导入bipSchnorr对象，用于Schnorr签名。-->
     <!--script src="js/tiny-secp256k1.js"></script -->
+    <script src="../js/ethers.umd.min.js"></script><!--导入ethers对象，专门用于处理以太币-->
+    <script src="../js/wordlists-extra.umd.min.js"></script><!--导入wordlistsExtra对象-->
 
     <!--2. 以太坊js库-->
-    <script type="module">
+    <!--script type="module">
         import { ethers } from "../js/ethers.min.js";
         window.ethers = ethers;
         import * as wordlistsExtra from "../js/wordlists-extra.min.js";//LangCz, LangEs, LangFr, LangIt, LangJa, LangKo, LangPt, LangZh
         window.wordlistsExtra = wordlistsExtra;
-    </script>
+    </script-->
 </head>
 
 <body>
     <select id="select_language"
         style="text-align: center;border-style: none;background-color: transparent;outline-style: none;position: absolute;right: 10px;top: 4px;border-bottom: 1px solid #999;">
         <option value="en">English</option>
-        <option value="cn" selected="">简体中文</option>
+        <option value="zh" selected="">简体中文</option>
     </select>
 
     <div class="container">
@@ -55,7 +57,7 @@
             <div class="head" style="left: 580px;">战</div -->
             <div
                 style="position: absolute;left: 100px;font-size: 3.5rem;text-shadow: -1px -1px #eee,1px 1px #555;color: lightblue;font-weight: 600;height: 80px;line-height: 80px;">
-                加密币安全交易</div>
+                开放离线钱包</div>
             <p id="alarm" style="position: absolute;top: 6px;left: 660px;color: red;font-size: 1.2rem;"></p>
             <img id="choose_network" src="../images/config.png"
                 style="position: absolute;top: 2.6rem;right: 4px;width: 40px;" title="配置">
@@ -148,8 +150,11 @@
                                     <textarea id="mnemonic"
                                         style="position: absolute;top: 70px;left: 120px;width: 220px;height: 130px;border: none;color: red;resize: none"
                                         placeholder="自动产生的助记词显示在这里，或者在这里输入以前的助记词以便显示钱包信息。"></textarea>
-                                    <input value="" id="seed_password" type="password"
-                                        style="width: 214px;text-align: center;color: red;border: none;position: absolute;top: 90px;left: 360px;">
+                                    <span style="position: absolute;top: 90px;left: 360px;"><input value="" id="seed_password" type="password"
+                                            style="width: 214px;text-align: center;color: red;border: none;outline-style: none;">
+                                        <img src="../images/closeeye.png" id="bitcoin_password_eye"
+                                            style="width: 16px;">
+                                    </span>
                                     <!--select class="path" id="coin_type"
                                 style="position: absolute;top: 116px;left: 530px;color: red;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1.2rem;">
                                 <option value="0" selected>0-比特币</option>
@@ -333,7 +338,7 @@
                                         交易手续费大概估算方法（单位为美元）：1+输入个数*0.8+输出个数*0.5，例如你构建的交易包含三个输入，两个输出，那么手续费就是1+3*0.8+2*0.5=4.4美元。如果你出的手续费高，成功交易的时间就更短，否则更长，一般的时间都在数小时之内。
                                     </p>
                                     <p style="line-height: 1.8rem;color:#888;font-size: small;">
-                                        操作步骤：（1）首先手续费（允许修改）。（2）非必要不修改版本、Marker、锁定时间和Flag，除非你理解它们的确切意义，并真的需要修改。（3）添加输入时，输入钱包地址查询可用的UTXO，非必要不修改顺序号和地址类型。
+                                        操作步骤：（1）首先手确定续费（允许修改）。（2）非必要不修改版本、Marker、锁定时间和Flag，除非你理解它们的确切意义，并真的需要修改。（3）添加输入时，输入钱包地址查询可用的UTXO，非必要不修改顺序号和地址类型。如果要把重要数据永久保存在比特币区块链上，请在右侧“增加输出”的下方选择“OP_RETURN”地址类型，然后输入不超过26哦中文或者不超过80个英语字母的句子。
                                     </p>
                                     <p style="line-height: 1.8rem;color:red;font-size: small;">
                                         建议你采用浏览器firefox，并且使用浏览器的隐私窗口打开本页面。</p>
@@ -444,7 +449,7 @@
                                             <p style="margin-bottom: 0px;">对方的钱包地址</p>
                                             <input id="tx_he_address" placeholder="输入对方的钱包地址……" style="width: 560px;">
                                             <select class="path" id="tx_he_type"
-                                                style="color: gray;width: 110px;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray; outline-style:none">
+                                                style="color: gray;text-align: center;border: none;background-color: transparent;font-size: 1rem;border-bottom: 1px solid gray; outline-style:none">
                                                 <option value="0">P2PK</option>
                                                 <option value="1">P2PKH</option>
                                                 <option value="2">P2SH</option>
@@ -478,7 +483,7 @@
                                         由于签名需要用到私钥，为了确保私钥绝对安全，建议断掉网络，拷贝私钥时建议分段拷贝。
                                     </p>
                                     <p style="line-height: 1.8rem;color:#888;font-size: small;">
-                                        操作说明：（1）点击“导入输入”按钮导入上1步添加的输入；（2）勾选需要签名的输入；（3）输入私钥。注意：一个私钥可以一次签名多个输入，一个输入允许被不同的私钥多次签名。所有的输入都要被签名。
+                                        操作说明：（1）点击“导入输入”按钮导入上1步添加的输入；（2）勾选需要签名的输入；（3）输入私钥。注意：一个私钥可以一次签名多个输入，一个输入允许被不同的私钥多次签名，比如对于多钱地址P2SH和P2WSH。所有的输入都要被签名。
                                     </p>
                                     <p style="line-height: 1.8rem;color:red;font-size: small;">
                                         由于签名需要用到私钥，强烈建议你这样做：使用firefox浏览器，并且使用浏览器的隐私窗口打开本页面，签名前必须让浏览器进入脱机工作模式。如果你不知道操作，请浏览下面的“获取帮助”。
@@ -540,18 +545,18 @@
                                     <p style="margin-bottom: 0px;">输入私钥（WIF格式或被密码保护的私钥)：</p>
                                     <span>
                                         <input size="76" id="tx_private" type="password" placeholder="输入私钥……">
-                                        <img src="../images/closeeye.png" id="private_eye">
+                                        <img src="../images/closeeye.png" id="private_eye" style="width:16px">
                                     </span>
                                     <p style="margin-bottom: 0px;">如果私钥被密码保护，请输入保护密码：</p>
-                                    <span>
-                                        <input id="tx_password" size="30" type="password" placeholder="私钥保护密码…">
+                                    <p style="width: 688px;margin: 0px 0px 4px;border-bottom: 1px solid #DDDDDD;">
+                                        <input id="tx_password" size="30" type="password"
+                                            placeholder="Private key password...">
                                         <img src="../images/closeeye.png"
-                                            id="password_eye">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                        N:<input id="N_sign" value="16384" style="width:4rem">&nbsp;&nbsp;&nbsp;r:<input
-                                            id="r_sign" style="width: 2rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;p:<input
-                                            id="p_sign" style="width:2rem" value="8">
-                                    </span>
-                                    <div style="border-bottom: 1px solid #CCC;margin-bottom: 4px;"></div>
+                                            id="password_eye" style="width:16px"><span style="padding: 0px 0px 0px 60px;">解密参数：
+                                        N=<input id="N_sign" value="16384" style="width:4rem">&nbsp;&nbsp;&nbsp;r=<input
+                                            id="r_sign" style="width: 2rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;p=<input
+                                            id="p_sign" style="width:2rem" value="8"></span>
+                                    </p>
                                     <button id="tx_delete_sign" style="float: right;margin-left: 4px;">删除签名</button>
                                     <button id="tx_sign" style="float: right;" data-id="0">签名</button>
                                 </div>
@@ -779,7 +784,7 @@
                                     placeholder="转入钱包的地址..."><br>
                                 　　转账金额：<input id="ethereum_value"
                                     style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                                    placeholder="转账多少个以太币...">个以太币<br>
+                                    placeholder="转账多少个以太币...">个以太币（可为0）<br>
                                 <!--　　参考汇率：<input id="ethereum_rate"
                                     style="width: 9rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
                                     placeholder="1以太币兑换多少美元">美元<br>-->
@@ -809,7 +814,7 @@
                                         placeholder="多少美元...">美元（小费包含在交易费用里面）<br></span>
                                 　　　　备注：<textarea id="ethereum_data" rows="5"
                                     style="width: 40rem;border: none;border-bottom: 1px solid #888;border-top: 1px dotted #CCC;border-left: 1px dotted #CCC;border-right: 1px dotted #CCC;color: green;outline-style: none;margin-top: 4px;"
-                                    placeholder="保存在区块上的信息，最多7000个汉字，字数越多交易费越贵"></textarea><br>
+                                    placeholder="保存在区块上的信息，最多7000个汉字，字数越多交易费越多"></textarea><br>
                                 <p style="width: 47rem;text-align: right;">
                                     <button id="ethereum_ok_transfer"
                                         style="padding: 0px 1rem;background-color: gold;">转账</button>&nbsp;
@@ -852,13 +857,14 @@
 
                                 <p>或者直接去这些网站发布交易：</p>
                                 <fieldset>
-                                    <legend>加密币主网</legend>
-                                    <a href="https://blockchair.com/broadcast"
-                                        target="_blank">https://blockchair.com/broadcast</a><br>
-                                    <a href="https://live.blockcypher.com/btc/pushtx/"
-                                        target="_blank">https://live.blockcypher.com/btc/pushtx/</a><br>
-                                    <a href="https://www.blockchain.com/btc/pushtx"
-                                        target="_blank">https://www.blockchain.com/btc/pushtx</a>
+                                    <legend>以太币主网</legend>
+                                    <a href="https://etherscan.io/pushTx"
+                                        target="_blank">https://etherscan.io/pushTx</a><br>
+                                </fieldset><br>
+                                <fieldset>
+                                    <legend>以太币测试网</legend>
+                                    <a href="https://sepolia.etherscan.io/pushTx"
+                                        target="_blank">https://sepolia.etherscan.io/pushTx</a><br>
                                 </fieldset><br>
                                 <!--fieldset>
                                     <legend>比特币测试网</legend>
@@ -868,6 +874,29 @@
                                 </fieldset -->
                             </div>
                         </details>
+                    </div>
+                </details>
+                <details class="parent">
+                    <summary>ENS域名</summary>
+                    <div style="position: relative;">
+                        <details>
+                            <summary style="color: #555;">帮助</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                可从ENS域名解释成以太币地址，反之亦然。
+                            </p>
+                            <p style="color: rgb(238, 89, 89);font-size: small;">
+
+                            </p>
+                        </details>
+                        <hr />
+                        <br><br>
+                        域名：<input id="ens_name" placeholder="输入域名……"
+                            style="width: 13rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                        地址：<input id="ethereum_address" placeholder="输入以太坊地址……"
+                            style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                        <button id="ens_address_btn">域名→地址</button>
+                        <button id="address_ens_btn">地址→域名</button>
+                        <button id="ens_reset">清空</button><br><br>
                     </div>
                 </details>
             </div>
@@ -919,10 +948,11 @@
                                 务必牢记密文私钥和密码！！
                             </p>
                         </div>
-                        CPU/内存成本：<input id="N_id"
-                            value="16384">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;块大小：<input id="r_id"
-                            style="width: 3rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;并行化：<input
-                            id="p_id" style="width:3rem" value="8">
+                        <p style="margin: 0px; width:800px; border-bottom: 1px solid #DDD">加/解密参数：　　　<span style="color: gray;">CPU/内存成本=<input id="N_id"
+                            value="16384">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;块大小=<input id="r_id"
+                            style="width: 3rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;并行化=<input
+                            id="p_id" style="width:3rem" value="8"></span>
+                        </p>
                         <!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;是否压缩：<label>压缩<input type="radio" name="isCompressed" checked></label>&nbsp;&nbsp;&nbsp;<label>不压缩<input type="radio" name="isCompressed"></label -->
 
                     </div>
@@ -1096,11 +1126,11 @@
                                 style="width: 16px;"></span><br><br>
                         公钥：<input id="sign_publicKey"
                             style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
-                        签名算法：
+                        签名算法：<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
                         <label style="margin-right: 2rem;">ECDSA <input type="radio" name="algorithm" disabled></label>
                         <label style="margin-right: 2rem;">Schnorr <input type="radio" name="algorithm" checked></label>
                         <label style="margin-right: 2rem;">DSA <input type="radio" name="algorithm" disabled></label>
-                        <label>RSA <input type="radio" name="algorithm" disabled></label><br><br>
+                        <label>RSA <input type="radio" name="algorithm" disabled></label></span><br><br>
                         签名结果：<br>
                         <textarea id="sign_result" placeholder="签名……"
                             style="width: 49rem;height: 2rem;padding: 12px;color: #666666;"></textarea><br>
@@ -1119,7 +1149,7 @@
                     </div>
                 </details>
                 <details class="child" id="encrypt_manage">
-                    <summary>加密与解密</summary>
+                    <summary>非堆成加/解密</summary>
                     <div style="position: relative;">
                         <details>
                             <summary style="color: #555;">帮助</summary>
@@ -1218,8 +1248,7 @@
                 <p class="help">那怎么购买加密币呢？别急，让我继续向你娓娓道来……在一个风高月黑的夜晚，你摸到了一个小木屋的门口……哈哈！</p>
                 <p class="help">
                     钱包里还有一个私钥，你卖币时需要发起一笔转账交易，并用这个私钥对交易进行签名，然后把签名后的交易发布到网上，会有某个矿工把你发起的交易打包进区块的，你就等着吧，一般几分钟后交易就会完成。交易费给得越多，处理的优先权就越高。
-                    交易费是给矿工的，不过现在的矿工看重的可不是那微不足道的交易费，而是挖矿奖励的加密币。你在发起交易时自己确定交易费，交易费一般一美元之内就可以了，交易费多少与转账金额没有关系。我曾经只给了0.4美元的交易费，也很快完成了交易。交易费不是真的给美元，而是给等值
-                    的加密币。一个比特币等于1亿聪——即100000000聪，按照现在的汇率（一个比特币值10万美元），那么1美元约等于1000聪，0.4美元就是400聪。比如我发起一笔交易：卖给李四0.3个比特币，交易费1美元，于是填写的主要交易数据为：
+                    交易费是给矿工的，不过现在的矿工看重的可不是那微不足道的交易费，而是挖矿奖励的加密币。你在发起交易时自己确定交易费，交易费一般一美元之内就可以了，交易费多少与转账金额没有关系。我曾经只给了0.4美元的交易费，也很快完成了交易。交易费不是真的给美元，而是给等值的加密币。一个比特币等于1亿聪——即100000000聪，按照现在的汇率（一个比特币值10万美元），那么1美元约等于1000聪，0.4美元就是400聪。比如我发起一笔交易：卖给李四0.3个比特币，交易费1美元，于是填写的主要交易数据为：
                     李四的钱包地址：xxxxx，发生额：30000000聪，交易费：1000聪。李四通过银行转账或者微信、支付宝什么的支付手段给我三万美元即可，或者等值的人民币21万（假如1美元兑7元人民币）。
                 </p>
                 <p class="help">地址是从私钥导出来的，但是从地址没法反推算出私钥，私钥和地址是一对的。私钥千万不要告诉任何人，只有掌握私钥的人才能卖掉钱包里的加密币！</p>
@@ -1243,13 +1272,13 @@
                 <p class="help" style="color: rgba(222, 15, 15, 0.959)">
                     私钥不要告诉任何人，除了你自己，没有人知道你的私钥，切记！切记！！不过呢，以防你万一你遭遇不测，也可以告诉家人，以免加密币随同你一起驾鹤西去……呵呵。</p>
                 <p class="help">
-                    在实际的操作过程中，我们一般不会采用抛硬币的方法来产生私钥，而是采用电脑程序代码。关于私钥就讲这些啦，如果向进一步了解私钥，不妨去翻看我写的新书《加密币安全交易实战》，可从我的个人网站下载。
+                    在实际的操作过程中，我们一般不会采用抛硬币的方法来产生私钥，而是采用电脑程序代码。关于私钥就讲这些啦，如果想进一步了解私钥，不妨去翻看我写的新书《加密币安全交易实战》，可从我的个人网站下载。
                 </p>
                 <br>
                 <p class="help" style="font-weight: 700; font-size: large">2.2 地址</p>
                 <p class="help">
                     钱包地址是从公钥推导出来的，而公钥又是从私钥推导出来的，但是从地址无法反推算公钥，从公钥无法反推私钥。地址可以告诉别人，你购买加密币时别人就是往这个地址放币的，这像极了网购，你付款后，商家就往你家的地址发货。各种加密币从私钥推导地址的方法不尽相同，最终得到的地址也不同，比如比特币和以太币从同一个私钥推导出来的地址是不同的，且比特币地址不能用于接收以太币，同样以太币地址不能接收比特币，
-                    如果搞错了，别人转给你的加密币就永久丢失了，这一点千万要记住！即使是同一种加密币，随着时间的发展，可能存在多种地址类型，比如比特币地址就存在很多类型，依时间顺序有：P2PK、P2PKH、P2SH、P2WPKH、P2TR等，P2TR是2021年才发展起来的，P2WPK现在最流行，此地址对应的交易数据量小，交易费用低。P2SH、P2TR地址支持多签，这一点特别适合多人决策的组织，比如公司花钱时需要老总、分管财务的副总和财务主管签名才行，为此公司
+                    如果搞错了，别人转给你的加密币就永久丢失了，这一点千万要记住！即使是同一种加密币，随着时间的发展，可能存在多种地址类型，比如比特币地址就存在很多类型，依时间顺序，先后诞生：P2PK、P2PKH、P2SH、P2WPKH、P2TR等，P2TR是2021年才发展起来的，P2WPK现在最流行，此地址对应的交易数据量小，交易费用低。P2SH、P2TR地址支持多签，这一点特别适合多人决策的组织，比如公司花钱时需要老总、分管财务的副总和财务主管签名才行，为此公司
                     可以采用P2SH地址，发起转账业务时需要多人使用各自的私钥签名。
                     同一个私钥可以推导出任意类型的地址，比如我从同一个私钥推导出比特币全部类型的地址，转币时，我把对方钱包支持的最新版地址告诉他，比如张三的钱包支持P2WPKH、P2SH和P2PKH三种类型的地址，我就把我的P2WPKH地址告诉他，而李四的钱包只支持P2PKH和P2PK，我就把我的P2PKH地址告诉他。早期开发的钱包app很可能不支持后来诞生的地址类型，这一点容易理解。
                 </p>
@@ -1269,22 +1298,22 @@
                     现在张三给你的那笔转账已经花完了，以后计算余额时就排除这笔帐。不过你同时多了一笔自己转给自己的帐（发生额为29999000聪，即0.29999个比特币），这个0.29999会计入钱包余额，所以现在的钱包余额为0.79999个比特币了。
                 </p>
                 <p class="help">
-                    在上面的例子中，我能否花掉李四放币给我的那笔转账呢？不行，因为金额不够。但是我可以同时花掉张三和李四的两笔账，共1.5个币，只不过把差额0.79999个币转回我的钱包（一般是我的另一个钱包地址，以便归拢资金）。
+                    在上面的例子中，我能否花掉李四放币给我的那笔转账呢？不行，因为金额不够。但是我可以同时花掉张三和李四的两笔账，共1.5个币，只不过把差额0.79999个币转回我的钱包（一般是我的另一个钱包地址，目的是归拢资金）。
                 </p>
                 <p class="help">好了，现在总结一下，比特币的钱包余额就是所有还没有花掉的转账发生额之和，表示为UTXO，即Unspent Transaction Output。</p>
                 <p class="help"><br><br></p>
                 <h2>3. 离线签名</h2>
                 <p class="help">
-                    一笔转账业务必须先签名才能发布，就是使用私钥对转账业务进行签名，当矿工收到这笔业务时首先要验证签名，签名验证通过后才打包进入区块，否则直接删除这笔转账业务。那么现在的问题是如何发起一笔转账交易？要发起一笔转账交易必须明确这几方面：（1）要花费我哪些UTXO？（2）给哪些地址放币、各放币多少？（3）扣除手续费后多余的加密币转回给我的哪个地址？<br>要花费的那些UTXO在本次转账业务中称为输入（Input），加密币的接收方称为输出（Output），
+                    一笔转账业务必须签名后才能发布，就是使用私钥对转账业务进行签名，当矿工收到这笔业务时首先要验证签名，签名验证通过后才打包进入区块，否则矿工会直接删除这笔转账业务。那么现在的问题是如何发起一笔转账交易？要发起一笔转账交易必须明确这几方面：（1）要花费我哪些UTXO？（2）给哪些地址放币、各放币多少？（3）扣除手续费后多余的加密币转回给我的哪个地址？<br>要花费的那些UTXO在本次转账业务中称为输入（Input），加密币的接收方称为输出（Output），
                     因此存在一个等式：全部输入的加密币之和=全部输出的加密币之和+交易手续费。因此一个转账交易包含若干个输入、若干个输出和对输入的签名，手续费是由矿工计算出来的——输入金额之和减去输出金额之和。
                 </p>
                 <p class="help"><br><br></p>
                 <h2>4. 私钥管理</h2>
-                <p class="help">私钥如此重要，所以如何更好的管理私钥一直以来是大家心心念念的大事。私钥忘记了等于你的加密币永久丢失了，私钥被盗意味着你的加密币被盗。</p>
+                <p class="help">私钥如此重要，所以如何更好的管理私钥一直以来是大家心心念念的大事。忘记了私钥等于你的加密币永久丢失了，私钥被盗意味着你的加密币极可能也被盗。</p>
                 <br>
                 <p class="help" style="font-weight: 700; font-size: large">4.1 私钥加密保护</p>
                 <p class="help">
-                    为了防止私钥被盗，可以对私钥进行加密保护，即形成密文私钥，这样即使别人获取了密文私钥，他如果不知道解密密码，他是无法获得明文私钥的，也就无法发起交易并签名，因为矿工会拒绝所有无法验证签名的交易！加密密码类似网银密码、或者邮箱密码，一般就是7、8个字符，一般记在脑袋里。而密文私钥可以写在纸上，或者保存在电脑里、U盘里、网盘里或者邮件里。如果加密密码太简单（比如很多人喜欢采用123456做密码），即使私钥加了密也面临极大风险，尤其是把私钥保存在网盘中。所以密码不要太简单，最好包含数字、小写字母和诸如.,%@#*&!;-等字符，而且长度不要太短，建议9个字符以上。
+                    为了防止私钥被盗，可以对私钥进行加密保护，即形成密文私钥，这样即使别人获取了密文私钥，他如果不知道解密密码，他是无法获得明文私钥的，也就无法发起交易并签名，因为矿工会拒绝所有无法验证签名的交易！加密密码类似网银密码、或者邮箱密码，一般就是7、8个字符，容易记在脑袋里。而密文私钥可以写在纸上，或者保存在电脑里、U盘里、网盘里或者邮件里。如果加密密码太简单（比如很多人喜欢采用123456做密码），即使私钥加了密也面临极大风险，尤其是把私钥保存在网盘中。所以密码不要太简单，最好包含数字、小写字母和诸如.,%@#*&!;-等字符，而且长度不要太短，建议9个字符以上。
                     在上面的“钱包管理”中可以对私钥进行加密和解密。
                 </p>
                 <br>
@@ -1305,7 +1334,7 @@
                     table knock moment raccoon scrub color raccoon figure
                     stumble通过密码A1b2C3&推导5号账户中的2号钱包，并让张三往此钱包转了3个比特币，那时我在纸上记下了如下信息：
                     “poem crater dove table knock moment raccoon scrub color raccoon figure
-                    stumble/5号账户/2号钱包”，而密码是我经常用的，记在脑袋里了。</p>
+                    stumble/5号账户/2号钱包”，而密码是我经常用的，就直接记在脑袋里了，反正打死我也不告诉你。</p>
                 <p class="help">现在要花这笔钱，我得找回私钥才行，所以我就在上面的“钱包管理”中输入助记词poem crater dove table knock moment raccoon
                     scrub color
                     raccoon figure
@@ -1324,12 +1353,13 @@
                 <p class="help">
                     （3）对于重度投资加密币的人，资金在千万元以上甚至数亿、乃至几十亿上百亿，每种加密币各用一组助记词，助记词包含24个单词，且采用长度不低于15个字符的密码来保护助记词，密码包含大小写字母、数字和其他符号。使用3、5个账户，每个账户里开设若干个钱包，合理规划账户和钱包的使用，每一笔超千万的大额转账单独使用一个钱包来收款，钱包的私钥必须用密码加密保护，签名时使用密文私钥和密码（临时解密私钥完成签名）。
                 </p>
+                <br><br><hr>
+                <p class="help" style="text-align: right; color: gray;">如有任何疑问，请随时给我们来邮件，我们的邮件地址是 admin@walletoffline.com</p>
 
-
-                <br><br><br>
             </div>
         </main>
-        <footer style="visibility: hidden">FOOTER</footer>
+        <footer><a href="https://github.com/veryopen/walletoffline" target="_blank" style="color: black;text-decoration: none;">On<img src="../images/github.png">Github</a>
+</footer>
     </div>
     <dialog id="wallet_dialog">
         <h3 style="text-align: center;">我的对话框</h3>
@@ -1376,7 +1406,7 @@
     </dialog>
 
     <dialog
-        style="z-index: 9999;text-align: center;border-radius: 50%;border-style: none;position:relative;height: 120px;box-shadow: 0px 3px 8px 0px rgba(0, 0, 0, 0.3);overflow: clip;"
+        style="z-index: 9999;text-align: center;border-radius: 50%;border-style: none;position:relative;height: 120px;width:120px;box-shadow: 0px 3px 8px 0px rgba(0, 0, 0, 0.3);overflow: clip;"
         id="waiting">
         <img src="../images/doing.gif" style="width: 100px;position: absolute;z-index: 100;left: 36%;top: 30px;">
         <div
@@ -1440,8 +1470,6 @@
     </div>
     <img id="cover_crypto" src="images/bitcoin_html.png"
         style="position: fixed;z-index:9999;top: 20%;right: 20%;visibility: hidden">
-    <a href="https://github.com/veryopen/walletoffline" target="_blank"
-        style="position: fixed; bottom:1rem;right:1rem;">Walloffline on Github</a>
 </body>
 <script src="../js/binaryTree.js"></script>
 <script src="../js/variables.js"></script>

@@ -7,7 +7,7 @@ body {
     height: 97vh;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-template-rows: 80px minmax(300px, max-content) 50px;
+    grid-template-rows: 80px minmax( calc( 100vh - 120px ), max-content) 40px;
 }
 
 /*header中的样式*/
@@ -78,7 +78,7 @@ main {
 }
 
 .parent[open]>summary {
-    list-style-image: url("../images/open.png");
+    list-style-image: url("../../images/open.png");
 }
 
 .parent>div {
@@ -115,7 +115,7 @@ main {
 
 #security {
     height: 158px;
-    background-image: url(../images/security.png);
+    background-image: url('../images/security.png');
     background-size: contain;
     background-repeat: no-repeat;
     margin: 2rem 1rem 4rem;
@@ -202,6 +202,6 @@ main {
   } */
 
 footer {
-    grid-column: span 12;
-    background-color: lightblue;
+    grid-column: span 1;
+/*    background-color: lightblue;*/
 }

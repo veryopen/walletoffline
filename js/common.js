@@ -887,3 +887,38 @@ function formatBytes(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+async function openPage() {
+    //根据用户上次选择的语言：
+    lang = localStorage.getItem('lang');
+    if (lang) {
+        return;
+    } 
+
+    try {
+        //根据地理位置：
+        let response = await fetch('https://ipapi.co/json/');
+        let data = await response.json();
+        const countryCode = data.country;
+        const langMap = {
+            'CN': 'zh',
+            'TW': 'zh',
+            'US': 'en',
+            'GB': 'en',
+            // 'FR': 'fr',
+            // 'ES': 'es',
+            // 'JP': 'ja',
+            // 'KR': 'ko',
+            // 'SA': 'ar',
+            // 'AE': 'ar',
+            'AU': 'en',
+            // 添加更多国家映射
+        };
+        lang = langMap[countryCode] || 'en'; // 默认英语
+        console.log(lang);
+    } catch (err) {
+        //根据浏览器的语言：
+        let userLang = navigator.language || navigator.userLanguage;
+        lang = userLang.split('-')[0].toLowerCase();
+    }
+}

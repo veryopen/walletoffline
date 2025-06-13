@@ -235,6 +235,45 @@ window.addEventListener("load", () => {
         }
     })
 
+    document.getElementById('ens_address_btn').addEventListener("click", async (evt) => {
+        let ensName = document.getElementById('ens_name').value.trim();
+        if (!ensName) {
+            alert('The ENS can not be empty!');
+            return;
+        }
+        openModal('Please wait, querying …');
+        document.getElementById('ethereum_address').value = '';
+        try {
+            const address = await provider.resolveName(ensName);
+            document.getElementById('ethereum_address').value = address;
+        } catch (error) {
+            document.getElementById('ethereum_address').value = "Failed:" + error;
+        }
+        closeModal();
+    })
+
+    document.getElementById('address_ens_btn').addEventListener("click", async (evt) => {
+        let ensAddress = document.getElementById('ethereum_address').value.trim();
+        if (!ensAddress) {
+            alert('The address can not be empty!');
+            return;
+        }
+        openModal('Please wait, querying …');
+        document.getElementById('ens_name').value = '';
+        try {
+            const ensName = await provider.lookupAddress(ensAddress);
+            document.getElementById('ens_name').value = ensName ? ensName : 'No Record';
+        } catch (error) {
+            document.getElementById('ens_name').value = "Failed:" + error;
+        }
+        closeModal();
+    })
+
+    document.getElementById('ens_reset').addEventListener('click',(evt)=>{
+        document.getElementById('ens_name').value = '';
+        document.getElementById('ethereum_address').value = '';
+    })
+
     document.getElementById('ethereum_decode_tx').addEventListener('click', (evt) => {
         let txHex = document.getElementById('ethereum_dispatch_raw_hex').innerText.trim();
         if (txHex == '') {
@@ -273,21 +312,23 @@ window.addEventListener("load", () => {
     });
 
     document.getElementById('ethereum_password_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', '../images/openeye.png');
+        ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('ethereum_private_password').setAttribute('type', 'text');
+        document.getElementById('ethereum_privateKey').setAttribute('type', 'text');
     })
     document.getElementById('ethereum_password_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', '../images/closeeye.png');
+        ev.target.setAttribute('src', '.images/closeeye.png');
         document.getElementById('ethereum_private_password').setAttribute('type', 'password');
+        document.getElementById('ethereum_privateKey').setAttribute('type', 'password');
     })
 
     document.getElementById('sign_password_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', '../images/openeye.png');
+        ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('sign_private_password').setAttribute('type', 'text');
         document.getElementById('sign_privateKey').setAttribute('type', 'text');
     })
     document.getElementById('sign_password_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', '../images/closeeye.png');
+        ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('sign_private_password').setAttribute('type', 'password');
         document.getElementById('sign_privateKey').setAttribute('type', 'password');
     })
@@ -298,17 +339,17 @@ window.addEventListener("load", () => {
         document.getElementById('encrypt_private_key').setAttribute('type', 'text');
     })
     document.getElementById('encrypt_password_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', '../images/closeeye.png');
+        ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('encrypt_private_password').setAttribute('type', 'password');
         document.getElementById('encrypt_private_key').setAttribute('type', 'password');
     })
 
     document.getElementById('steganography_password_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', '../images/openeye.png');
+        ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('steganography_password').setAttribute('type', 'text');
     })
     document.getElementById('steganography_password_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', '../images/closeeye.png');
+        ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('steganography_password').setAttribute('type', 'password');
     })
 
@@ -324,10 +365,12 @@ window.addEventListener("load", () => {
     document.getElementById('ethereum_new_password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('ethereum_new_private_password').setAttribute('type', 'text');
+        document.getElementById('ethereum_new_privatekey').setAttribute('type', 'text');
     })
     document.getElementById('ethereum_new_password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('ethereum_new_private_password').setAttribute('type', 'password');
+        document.getElementById('ethereum_new_privatekey').setAttribute('type', 'password');
     })
 
     document.getElementById('customize_mnemonic_words').querySelectorAll('input[class="mnemonic_customize"]').forEach(e => {
@@ -537,7 +580,7 @@ window.addEventListener("load", () => {
         document.getElementById("qrcode").innerHTML = '';
         document.getElementById('qrcode_title_dis').innerHTML = document.getElementById('qrcode_title').value.trim();
         document.getElementById('qrcode_tail_dis').innerHTML = document.getElementById('qrcode_tail').value.trim();
-        let image = '/images/default_qr.png';
+        let image = 'images/default_qr.png';
         let qr_logo = document.getElementById('logo_preview').querySelector('img');
         if (qr_logo) {
             image = qr_logo.getAttribute('src');
@@ -788,8 +831,14 @@ window.addEventListener("load", () => {
     })
 
     document.getElementById('decode_btn').addEventListener('click', (evt) => {
-        document.getElementById('input_utf8').value = ethers.toUtf8String((document.getElementById('input_hex').value.trim()));
+        try {
+            const originText = ethers.toUtf8String((document.getElementById('input_hex').value.trim()));
+            document.getElementById('input_utf8').value = originText;
+        } catch (err) {
+            alert(err);
+        }
     })
+
     document.getElementById('encode_reset').addEventListener('click', (evt) => {
         document.getElementById('input_utf8').value = '';
         document.getElementById('input_hex').value = '';

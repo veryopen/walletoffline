@@ -12,7 +12,8 @@ window.addEventListener("load", (evt) => {
             path.push('zh');
             pathname = path.join('/');
         }
-        window.open(location.origin + pathname, '_self');
+        localStorage.setItem('lang', evt.target.value);
+        window.open(location.origin + pathname + '/index.html', '_self');
     })
 
     document.getElementById('choose_net').addEventListener('click', (ev) => {
@@ -191,6 +192,15 @@ window.addEventListener("load", (evt) => {
         });
     });
 
+    document.getElementById('bitcoin_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('seed_password').setAttribute('type', 'text');
+    })
+    document.getElementById('bitcoin_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('seed_password').setAttribute('type', 'password');
+    })
+
     document.getElementById('new_wallet').addEventListener('click', (ev) => {
         wallets.mnemonic = bip84.generateMnemonic(parseInt(document.getElementById('mnemonic_length').value) * 352 / 33, null, bitcoin_language);
         document.getElementById('mnemonic').value = wallets.mnemonic;
@@ -230,7 +240,7 @@ window.addEventListener("load", (evt) => {
     document.getElementById('select_cryptocurrency').addEventListener('change', (evt) => {
         cryptoType = parseInt(evt.target.value);
     })
-    
+
     document.getElementById('encrypt').addEventListener('click', (ev) => {
         let decryptedKey = document.getElementById("decryptKey").value.trim();
         if (decryptedKey == '') {
@@ -339,15 +349,15 @@ window.addEventListener("load", (evt) => {
         }
     });
 
-    document.getElementById('eyes').addEventListener('click', (e) => {
-        if (e.target.getAttribute('src') == 'images/closeeye.png') {
-            e.target.setAttribute('src', 'images/openeye.png');
-            document.getElementById("password").setAttribute("type", "text");
-        } else {
-            e.target.setAttribute('src', 'images/closeeye.png');
-            document.getElementById("password").setAttribute("type", "password");
-        }
+    document.getElementById('eyes').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('password').setAttribute('type', 'text');
     })
+    document.getElementById('eyes').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('password').setAttribute('type', 'password');
+    })
+
     document.getElementById('clear').addEventListener('click', (e) => {
         document.getElementById('decryptKey').value = '';
         document.getElementById('encryptKey').value = '';
@@ -831,7 +841,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
 
     document.getElementById('manual_txId').addEventListener('blur', (ev) => {
         let txId = ev.target.value.trim();
-        if(txId.length != 64){
+        if (txId.length != 64) {
             alert("Must be a 64-bit hexadecimal string!");
             return;
         }
@@ -993,15 +1003,14 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         document.getElementById('tx_he_amount').value = '';
     })
 
-    document.getElementById('private_eye').addEventListener("click", (ev) => {
+    document.getElementById('private_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('tx_private').setAttribute('type', 'text');
+    })
 
-        if (ev.target.getAttribute('src') == 'images/openeye.png') {
-            ev.target.setAttribute('src', 'images/closeeye.png');
-            document.getElementById('tx_private').setAttribute('type', 'password');
-        } else {
-            ev.target.setAttribute('src', 'images/openeye.png');
-            document.getElementById('tx_private').setAttribute('type', 'text');
-        }
+    document.getElementById('private_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('tx_private').setAttribute('type', 'password');
     })
 
     document.getElementById('password_eye').addEventListener("mousedown", (ev) => {
@@ -1378,3 +1387,17 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
     window.addEventListener("online", checkEnv);
     window.addEventListener("offline", checkEnv);
 });
+
+(async function () {
+    let l = window.location.pathname.split('/');
+    let la = l[l.length - 2];
+    if (!['zh', 'en', 'ar', 'ja', 'ko', 'es', 'fr'].includes(la)) {
+        let langOld = lang;
+        await openPage();
+        if (langOld != lang) {
+            l.splice(l.length - 1, 0, lang);
+//            let newUrl = ;
+            window.open(window.location.origin + l.join('/'), '_self');
+        }
+    }
+})();

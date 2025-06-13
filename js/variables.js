@@ -37,6 +37,8 @@ var isTestNet_bitcoin = false;//Is test network?
 var bitcoin_language = bip39.wordlists.english;
 var canFetchRawTX = false;//Can get the Hex-encoded raw representation of transaction
 
+var lang = 'en';
+
 //Global Parameters for Ethereum：
 var signer = null;
 var provider = null;

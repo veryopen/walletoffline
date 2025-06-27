@@ -422,7 +422,7 @@ window.addEventListener("load", (evt) => {
                 //                document.querySelector('#wallet_management>div').appendChild(document.getElementById('encrypt_privatekey'));
                 cryptoType = 0;
             }
-            document.getElementById('cover_crypto').setAttribute('src', `../images/${et.currentTarget.dataset['id']}.png`);
+            document.getElementById('cover_crypto').setAttribute('src', `images/${et.currentTarget.dataset['id']}.png`);
             et.currentTarget.style.borderBottom = "#fff solid 2px";
             document.getElementById(et.currentTarget.dataset['id']).style.visibility = 'visible';
             et.currentTarget.querySelector('figure').style.background = "url(../images/current.png) right center no-repeat";

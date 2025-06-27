@@ -276,6 +276,8 @@ window.addEventListener("load", (evt) => {
             }).catch((error) => {
                 ev.target.removeAttribute("disabled");
                 document.getElementById('encryptKey').value = '';
+                closeModal();
+                alert(error);
                 throw error;
             });
         } catch (error) {

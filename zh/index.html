@@ -26,6 +26,8 @@
     <!--script src="js/tiny-secp256k1.js"></script -->
     <script src="../js/ethers.umd.min.js"></script><!--导入ethers对象，专门用于处理以太币-->
     <script src="../js/wordlists-extra.umd.min.js"></script><!--导入wordlistsExtra对象-->
+    <script src="../js/openpgp.min.js"></script><!--导入openpgp对象-->
+    <script src="../js/bitcoinjs-message.min.js"></script><!--导入bitcoinjsMessage对象-->
 
     <!--2. 以太坊js库-->
     <!--script type="module">
@@ -115,7 +117,7 @@
                     <summary>钱包管理</summary>
                     <div class="window" style="overflow-y: scroll; /*max-height: 0px;*/">
                         <details class="child">
-                            <summary>新建钱包&恢复钱包</summary>
+                            <summary>新建钱包 / 恢复钱包</summary>
                             <div>
                                 <details>
                                     <summary style="color: #555;">帮助</summary>
@@ -150,7 +152,8 @@
                                     <textarea id="mnemonic"
                                         style="position: absolute;top: 70px;left: 120px;width: 220px;height: 130px;border: none;color: red;resize: none"
                                         placeholder="自动产生的助记词显示在这里，或者在这里输入以前的助记词以便显示钱包信息。"></textarea>
-                                    <span style="position: absolute;top: 90px;left: 360px;"><input value="" id="seed_password" type="password"
+                                    <span style="position: absolute;top: 90px;left: 360px;"><input value=""
+                                            id="seed_password" type="password"
                                             style="width: 214px;text-align: center;color: red;border: none;outline-style: none;">
                                         <img src="../images/closeeye.png" id="bitcoin_password_eye"
                                             style="width: 16px;">
@@ -210,8 +213,18 @@
                                     </p>
                                 </details>
                                 <hr>
-                                <input size="70" id="fromWif_wif" placeholder="手工输入或者采用分段法拷贝私钥（WIF格式）……">
-                                <button id="fromWif_button">确定</button>
+                                私钥：<span><input type="password" size="70" id="fromWif_wif"
+                                        placeholder="手工输入或者采用分段法拷贝私钥（WIF格式）……"
+                                        style="border-style: none; border-bottom: 1px solid black; outline-style: none; color: green;"><img
+                                        src="../images/closeeye.png" id="fromWif_privateKey_eye"
+                                        style="width:16px"></span><br>
+                                密码：<span><input type="password" id="fromWif_password"
+                                        style="border-style: none; border-bottom: 1px solid black; outline-style: none; color: green;width: 14rem;">
+                                    <img src="../images/closeeye.png" id="fromWif_password_eye"
+                                        style="width:16px"></span>
+                                <span style="color: gray; font-size: small;">（如果私钥被密码保护，请输入密码）</span><br>
+                                <br><button id="fromWif_ok_btn">确定</button>&nbsp;<button
+                                    id="fromWif_reset_btn">清空</button>
                                 <table style="margin: 20px 0px;">
                                     <tr>
                                         <td colspan="2" style="border-bottom: 1px dotted #999;">1. 各种类型的地址：</td>
@@ -251,7 +264,7 @@
                                 <details>
                                     <summary style="color: #555;">帮助</summary>
                                     <p style="line-height: 1.8rem;color:#888;font-size: small;">
-                                        在这里你可以产生P2SH或P2WSH类型的多签地址，也可以产生P2TR类型的路径花费地址，P2TR的密钥花费地址在“新建钱包&恢复钱包”里面生成。
+                                        在这里你可以产生P2SH或P2WSH类型的多签地址，也可以产生P2TR类型的路径花费地址，P2TR的密钥花费地址在“新建钱包 / 恢复钱包”里面生成。
                                     </p>
                                 </details>
                                 <hr />
@@ -318,6 +331,43 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>签名 / 验证</summary>
+                            <div style="position: relative;">
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        用比特币私钥签名一段文本，或者验证一段文本的签名。从一些加密币交易平台（如HashKey Exchange）提取加密币时，要求你签名一段文本以确保地址的主人（其实就是跟踪加密币去向罢了）。
+                                    </p>
+                                </details>
+                                <hr />
+                                被签名的内容：<br><textarea id="bitcoin_segment_text"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: gray;"></textarea><br><br>
+                                私钥：<input id="bitcoin_segment_privateKey" placeholder="WIF格式或者加密的私钥..."
+                                    style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password">　私钥保护密码：<span><input id="bitcoin_segment_password"
+                                        style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password"><img src="../images/closeeye.png" id="bitcoin_segment_eye"
+                                        style="width: 16px;"></span><br><br>
+                                地址：<input id="bitcoin_segment_address" placeholder="比特币地址..."
+                                    style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                                地址类型：<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                    <label style="margin-right: 2rem;">P2PKH <input type="radio" name="addressType"
+                                            value="p2pkh"></label>
+                                    <label style="margin-right: 2rem;">P2SH(P2WPKH) <input type="radio"
+                                            name="addressType" value="p2sh(p2wpkh)"></label>
+                                    <label style="margin-right: 2rem;">P2WPKH <input type="radio" name="addressType"
+                                            value="p2wpkh" checked></label></span><br><br>
+                                签名（Base64编码）：<br>
+                                <textarea id="bitcoin_segment_result" placeholder="签名……"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: #666666;"></textarea><br><br>
+                                <button id="bitcoin_signature_btn">签名</button>
+                                <button id="bitcoin_veify_btn">验证签名</button>
+                                <button id="bitcoin_reset_btn">清空</button>
+                                <img id="bitcoin_segment_verify_result" src="images/sign_ok.png"
+                                    style="position: absolute;top: 310px;width: 110px;left: 640px;visibility: hidden;">
                             </div>
                         </details>
 
@@ -551,11 +601,12 @@
                                     <p style="width: 688px;margin: 0px 0px 4px;border-bottom: 1px solid #DDDDDD;">
                                         <input id="tx_password" size="30" type="password"
                                             placeholder="Private key password...">
-                                        <img src="../images/closeeye.png"
-                                            id="password_eye" style="width:16px"><span style="padding: 0px 0px 0px 60px;">解密参数：
-                                        N=<input id="N_sign" value="16384" style="width:4rem">&nbsp;&nbsp;&nbsp;r=<input
-                                            id="r_sign" style="width: 2rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;p=<input
-                                            id="p_sign" style="width:2rem" value="8"></span>
+                                        <img src="../images/closeeye.png" id="password_eye" style="width:16px"><span
+                                            style="padding: 0px 0px 0px 60px;">解密参数：
+                                            N=<input id="N_sign" value="16384"
+                                                style="width:4rem">&nbsp;&nbsp;&nbsp;r=<input id="r_sign"
+                                                style="width: 2rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;p=<input
+                                                id="p_sign" style="width:2rem" value="8"></span>
                                     </p>
                                     <button id="tx_delete_sign" style="float: right;margin-left: 4px;">删除签名</button>
                                     <button id="tx_sign" style="float: right;" data-id="0">签名</button>
@@ -677,7 +728,7 @@
                     <summary>钱包管理</summary>
                     <div class="window" style="overflow-y: scroll; /*max-height: 0px;*/">
                         <details class="child">
-                            <summary>新建钱包&恢复钱包</summary>
+                            <summary>新建钱包 / 恢复钱包</summary>
                             <div>
                                 <details>
                                     <summary style="color: #555;">帮助</summary>
@@ -725,11 +776,11 @@
                                         style="width: 10rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;">　（说明：路径m/44'/60'/i'/0/j表示第i+1个账户里的第j+1个钱包，i,j=0、1、2、…）
                                 </p>
                                 <p>　　　　　私钥：<input id="ethereum_new_privatekey"
-                                        style="width: 26rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        style="width: 34rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
                                         type="password">
                                     <span>　私钥保护密码：
                                         <input id="ethereum_new_private_password"
-                                            style="width: 11rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                            style="width: 15rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
                                             type="password">
                                         <img src="../images/closeeye.png" id="ethereum_new_password_eye"
                                             style="width: 16px;">
@@ -747,7 +798,7 @@
                             </div>
                         </details>
                         <details class="child">
-                            <summary>钱包余额&交易明细</summary>
+                            <summary>钱包余额 / 交易明细</summary>
                             <div>
                                 <details>
                                     <summary style="color: #555;">帮助</summary>
@@ -758,6 +809,37 @@
                                 <input size="70" id="ethereum_wallet_address" placeholder="输入钱包地址或者交易id……">
                                 <button id="ethereum_wallet_balance_btn">查询</button>
                                 <p id="ethereum_view_wallet_balance"></p>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>签名 / 验证</summary>
+                            <div style="position: relative;">
+                                <details>
+                                    <summary style="color: #555;">帮助</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        对一段文本签名，用于确权地址的主人，类似于现实生活当中的手写签名。用私钥签名，用公钥验证签名。签名后的文本不可更改，否则签名验证就会失败。对方必须获得文本、公钥和签名，然后才能验证签名。私钥必须为十六进制表示的字符串，即hex编码格式，如c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2，
+                                        公钥也是hex编码的六进制字符串，且必须去掉0x前缀，例如02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4。
+                                    </p>
+                                </details>
+                                <hr />
+                                被签名的文本：<br><textarea id="ether_sign_text"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: gray;"></textarea><br><br>
+                                私钥：<input id="ether_sign_privateKey" placeholder="十六进制格式的字符串（即hex编码），要去掉前缀0x"
+                                    style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password">　私钥保护密码：<span><input id="ether_sign_private_password"
+                                        style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password"><img src="../images/closeeye.png" id="ether_sign_password_eye"
+                                        style="width: 16px;"></span><br><br>
+                                公钥：<input id="ether_sign_publicKey" placeholder="不包括前缀'0x'"
+                                    style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                                签名（Hex编码）：<br>
+                                <textarea id="ether_sign_result" placeholder="签名……"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: #666666;"></textarea><br><br>
+                                <button id="ether_generate_sign_btn">签名</button>
+                                <button id="ether_virify_sign_btn">验证签名</button>
+                                <button id="ether_sign_reset">清空</button>
+                                <img id="ether_verify_result" src="images/sign_ok.png"
+                                    style="position: absolute;top: 246px;width: 110px;left: 600px;visibility: hidden;">
                             </div>
                         </details>
                     </div>
@@ -948,10 +1030,12 @@
                                 务必牢记密文私钥和密码！！
                             </p>
                         </div>
-                        <p style="margin: 0px; width:800px; border-bottom: 1px solid #DDD">加/解密参数：　　　<span style="color: gray;">CPU/内存成本=<input id="N_id"
-                            value="16384">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;块大小=<input id="r_id"
-                            style="width: 3rem;" value="8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;并行化=<input
-                            id="p_id" style="width:3rem" value="8"></span>
+                        <p style="margin: 0px; width:800px; border-bottom: 1px solid #DDD">加/解密参数：　　　<span
+                                style="color: gray;">CPU/内存成本=<input id="N_id"
+                                    value="16384">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;块大小=<input id="r_id"
+                                    style="width: 3rem;"
+                                    value="8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;并行化=<input id="p_id"
+                                    style="width:3rem" value="8"></span>
                         </p>
                         <!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;是否压缩：<label>压缩<input type="radio" name="isCompressed" checked></label>&nbsp;&nbsp;&nbsp;<label>不压缩<input type="radio" name="isCompressed"></label -->
 
@@ -1099,85 +1183,192 @@
                     </div>
                 </details>
                 <details class="child" id="sign_manage">
-                    <summary>数字签名与验证</summary>
+                    <summary>数字签名 / 验证</summary>
                     <div style="position: relative;">
                         <details>
                             <summary style="color: #555;">帮助</summary>
                             <p style="line-height: 1.8rem;color:#888;font-size: small;">
-                                数字签名用于确权文件的主人，类似于现实生活当中的手写签名。用私钥签名，用公钥验证签名。签名后的文件不可更改，否则签名验证就会失败。对方必须获得文件、公钥和签名后才能验证签名。私钥必须为十六进制表示的字符串，即hex编码格式，如c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2，
-                                公钥也是hex编码的六进制字符串，且必须去掉0x前缀，例如02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4。签名算法目前流行的有Schnorr、ECDSA、DSA和RSA，Schnorr比较先进，但目前使用暂时没有ECDSA那么普遍。
+                                对一个文件签名，用于确权文件的主人，类似于现实生活当中的手写签名。用私钥签名，用公钥验证签名。签名后的文本不可更改，否则签名验证就会失败。对方必须获得原文件、公钥和签名，然后才能验证签名。加密币的密钥一般不用来对文件签名，因为需要公布私钥从而泄露了隐私，在日常生活当中，通常采用pgp兼容的密钥来签名和验证签名。所以这里提供了两种签名方法：第一中方法是采用加密币密钥，第二种方法采用pgp兼容密钥。当采用第一种方法时要注意两点：私钥必须为十六进制表示的字符串，即hex编码格式，如c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2，公钥也是hex编码的六进制字符串，且必须去掉0x前缀，例如02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4。                            </p>
+                        </details>
+                        <hr />
+                        <details class="sunzi">
+                            <summary style="color: red;">方法1：使用加密币密钥</summary>
+                            选择被签名的文件：
+                            <input type="file" id="sign_file"
+                                style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                            文件摘要：<br><textarea id="sign_digest" disabled
+                                style="width: 49rem;height: 3rem;padding: 2px 10px;color: gray;"></textarea><br><br>
+                            私钥：<input id="sign_privateKey" placeholder="十六进制格式的字符串（即hex编码），要去掉前缀0x"
+                                style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password">　私钥保护密码：<span><input id="sign_private_password"
+                                    style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="../images/closeeye.png" id="sign_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            公钥：<input id="sign_publicKey" placeholder="不包括前缀'0x'"
+                                style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                            签名算法：<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                <label style="margin-right: 2rem;">ECDSA <input type="radio" name="algorithm"
+                                        disabled></label>
+                                <label style="margin-right: 2rem;">Schnorr <input type="radio" name="algorithm"
+                                        checked></label>
+                                <label style="margin-right: 2rem;">DSA <input type="radio" name="algorithm"
+                                        disabled></label>
+                                <label>RSA <input type="radio" name="algorithm" disabled></label></span><br><br>
+                            签名结果（Hex编码）：<br>
+                            <textarea id="sign_result" placeholder="签名……"
+                                style="width: 49rem;height: 3rem;padding: 2px 10px;color: #666666;"></textarea><br><br>
+                            <button id="generate_sign_btn">签名</button>
+                            <button id="virify_sign_btn">验证签名</button>
+                            <button id="sign_reset">清空</button>
+                            <img id="verify_result" src="images/sign_ok.png"
+                                style="position: absolute;top: 354px;width: 110px;left: 600px; visibility: hidden">
+                        </details>
+                        <details class="sunzi" style="position: relative;">
+                            <summary style="color: red;">方法2：使用PGP密钥</summary>
+                            <br>原始文件：<input type="file" id="pgp_original_file"
+                                style="outline-style: none;border-bottom: 1px solid black; width: 500px;"><br>
+                            签名文件：<input type="file" id="pgp_sign_file"
+                                style="outline-style: none;border-bottom: 1px solid black; width: 500px;"><br><br>
+                            PGP私钥：<textarea id="pgp_sign_privateKey" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----"></textarea><br>
+                            私钥保护密码：<span><input id="pgp_sign_password"
+                                    style="width: 200px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="../images/closeeye.png" id="pgp_sign_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            PGP公钥：<textarea id="pgp_sign_publicKey" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;...&#10;-----END PGP PUBLIC KEY BLOCK-----"></textarea>
+                            <br>
+                            密钥指纹：<input id="pgp_fingerprint" style="width: 500px;border: none; border-bottom: 1px solid #888;outline-style: none;" disabled><br><br>
+                            是否新产生密钥<input type="checkbox" id="pgp_sign_checkbox">
+                            <div style="padding: 10px;width: 760px;border: 1px solid #CCC;margin: 4px 0px;background-color: #FAFAFA; display:none;"
+                                id="pgp_newKey_div">
+                                用户名：<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="sign_name"><br>
+                                邮件：<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="sign_email"><br>
+                                密钥类型：<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                    <label style="margin-right: 2rem;">RSA <input type="radio" name="pgp_sign_algorithm"
+                                            value="rsa"></label>
+                                    <label style="margin-right: 2rem;">ECC <input type="radio" name="pgp_sign_algorithm"
+                                            checked="" value="ecc"></label>
+                                    <label style="margin-right: 2rem;">DSA <input type="radio" name="pgp_sign_algorithm"
+                                            value="dsa"></label>
+                                </span><br>
+                                密钥有效期：<input
+                                    style="border-style: none;border-bottom: 1px solid black;color: green;width: 40px;text-align: right;"
+                                    name="sign_expire" value="0"><span style="color:gray;">（单位‘天’，0表示永久有效）</span><br>
+                                <p style="color: red; font-size: small;">如果要用密码保护密钥，请在上面的“私钥保护密码：”处输入密码，密码要牢牢记住！</p>
+                                <p style="text-align: center; margin-bottom: 0px;"><button
+                                        id="pgp_generate_sign">产生密钥</button></p>
+                            </div><br>
+                            <div style="position: absolute;border: 1px solid green;padding: 10px;transform: rotate(-25deg);background-color: white;border-radius: 10px;top: 300px;left: 500px;color: green; display: none;"
+                                id="pgp_verificationResult">
+                            </div>
+                            <button id="pgp_sign_btn">签名文件</button>
+                            <button id="pgp_verify_btn">验证签名</button>
+                            <button id="pgp_sign_reset">清空</button><br><br>
+                        </details>
+                    </div>
+                </details>
+                <details class="child" id="async_encrypt_manage">
+                    <summary>非对称加 / 解密</summary>
+                    <div style="position: relative;">
+                        <details>
+                            <summary style="color: #555;">帮助</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                用公钥对文件加密，用私钥解密文件。如果加/解密是为了安全地与其他人传递信息，不太合适使用加密币的公钥和私钥，因为这会泄露公钥，所以还是建议采用PGP密钥。
                             </p>
                             <p style="color: rgb(238, 89, 89);font-size: small;">
 
                             </p>
                         </details>
                         <hr />
-                        选择被签名的文件：
-                        <input type="file" id="sign_file"
-                            style="outline-style: none;border-bottom: 1px solid black;"><br>
-                        文件摘要：<div id="sign_digest"
-                            style="width: 50rem;height: 1rem;border: 1px solid #dddddd;padding: 4px;color: gray;text-align: center;">
-                        </div><br>
-                        私钥：<input id="sign_privateKey" placeholder="十六进制格式的字符串（即hex编码），要去掉前缀0x"
-                            style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                            type="password">　私钥保护密码：<span><input id="sign_private_password"
-                                style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                                type="password"><img src="../images/closeeye.png" id="sign_password_eye"
-                                style="width: 16px;"></span><br><br>
-                        公钥：<input id="sign_publicKey"
-                            style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
-                        签名算法：<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
-                        <label style="margin-right: 2rem;">ECDSA <input type="radio" name="algorithm" disabled></label>
-                        <label style="margin-right: 2rem;">Schnorr <input type="radio" name="algorithm" checked></label>
-                        <label style="margin-right: 2rem;">DSA <input type="radio" name="algorithm" disabled></label>
-                        <label>RSA <input type="radio" name="algorithm" disabled></label></span><br><br>
-                        签名结果：<br>
-                        <textarea id="sign_result" placeholder="签名……"
-                            style="width: 49rem;height: 2rem;padding: 12px;color: #666666;"></textarea><br>
-                        <button id="generate_sign_btn">签名</button>
-                        <button id="virify_sign_btn">验证签名</button>
-                        <button id="sign_reset">清空</button>
-                        <img id="verify_result" src="images/sign_ok.png"
-                            style="position: absolute;top: 19.2rem;width: 110px;left: 30rem; visibility: hidden">
-                    </div>
-                    <div
-                        style="position: absolute;background-color: white;border: 1px solid gray;box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.2);top: 10rem;left: 10rem; visibility: hidden">
-                        <img id="steganographyed_image">
-                        <p style="text-align: center;"><a href="#"
-                                style="border: 1px solid gray; padding: 4px;background-color: #eee; text-decoration: none;color: black; font-size: 0.89rem;">保存图片</a><button
-                                id="close_hidden_image">关闭</button></p>
+                        <details class="sunzi">
+                            <summary style="color: red;">使用加密币密钥</summary>
+                            选择被加密的文件：
+                            <input type="file" id="encrypt_file"
+                                style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                            私钥：<input id="encrypt_private_key" placeholder="十六进制格式的字符串（即hex编码），要去掉前缀0x"
+                                style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password">　私钥保护密码：<span><input id="encrypt_private_password"
+                                    style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="../images/closeeye.png" id="encrypt_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            公钥：<input id="encrypt_publicKey" placeholder="32个字节的压缩公钥"
+                                style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                            <button id="encrypt_btn">加密</button>
+                            <button id="decrypt_btn">解密</button>
+                            <button id="encrypt_reset">清空</button><br><br>
+                            结果：<br>
+                            <div id="encrypt_result"
+                                style="width: 50rem;border: 1px solid #dddddd;padding: 4px;color: gray;"></div>
+                        </details>
+                        <details class="sunzi">
+                            <summary style="color: red;">使用PGP密钥</summary>
+                            <br>选择被加密的文件：
+                            <input type="file" id="pgp_encrypt_file"
+                                style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                            PGP私钥： <textarea id="pgp_private_key" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----"></textarea><br>
+                            私钥保护密码：<span><input id="pgp_private_password"
+                                    style="width: 200px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="../images/closeeye.png" id="pgp_encrypt_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            PGP公钥：<textarea id="pgp_public_key" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;...&#10;-----END PGP PUBLIC KEY BLOCK-----"></textarea>
+                            <br><br>
+                            是否新产生密钥<input type="checkbox" id="pgp_checkbox">
+                            <div style="padding: 10px;width: 760px;border: 1px solid #CCC;margin: 4px 0px;background-color: #FAFAFA; display:none;"
+                                id="pgp_generate_div">
+                                用户名：<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="name"><br>
+                                邮件：<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="email"><br>
+                                密钥类型：<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                    <label style="margin-right: 2rem;">RSA <input type="radio" name="pgp_algorithm"
+                                            value="rsa"></label>
+                                    <label style="margin-right: 2rem;">ECC <input type="radio" name="pgp_algorithm"
+                                            checked="" value="ecc"></label>
+                                    <label style="margin-right: 2rem;">DSA <input type="radio" name="pgp_algorithm"
+                                            value="dsa"></label>
+                                </span><br>
+                                密钥有效期：<input
+                                    style="border-style: none;border-bottom: 1px solid black;color: green;width: 40px;text-align: right;"
+                                    name="expire" value="0"><span style="color:gray;">（单位‘天’，0表示永久有效）</span><br>
+                                <p style="color: red; font-size: small;">如果要用密码保护密钥，请在上面的“私钥保护密码：”处输入密码，密码要牢牢记住！</p>
+                                <p style="text-align: center; margin-bottom: 0px;"><button
+                                        id="pgp_generate_btn">产生密钥</button></p>
+                            </div><br>
+                            <button id="pgp_encrypt_btn">加密文件</button>
+                            <button id="pgp_decrypt_btn">解密文件</button>
+                            <button id="pgp_encrypt_reset">清空</button><br><br>
+                        </details>
                     </div>
                 </details>
-                <details class="child" id="encrypt_manage">
-                    <summary>非对称加/解密</summary>
+                <details class="child" id="sync_encrypt_manage">
+                    <summary>对称加 / 解密</summary>
                     <div style="position: relative;">
                         <details>
                             <summary style="color: #555;">帮助</summary>
                             <p style="line-height: 1.8rem;color:#888;font-size: small;">
-                                用公钥对文件加密，用私钥解密文件。
-                            </p>
-                            <p style="color: rgb(238, 89, 89);font-size: small;">
-
+                                这里实现了基于OpenPGP标准的对称加密和解密，兼容GnuPG、gpg4win等开源工具。
                             </p>
                         </details>
                         <hr />
                         选择被加密的文件：
-                        <input type="file" id="encrypt_file"
+                        <input type="file" id="symmetric_file"
                             style="outline-style: none;border-bottom: 1px solid black;"><br><br>
-                        私钥：<input id="encrypt_private_key" placeholder="十六进制格式的字符串（即hex编码），要去掉前缀0x"
-                            style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                            type="password">　私钥保护密码：<span><input id="encrypt_private_password"
-                                style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                                type="password"><img src="../images/closeeye.png" id="encrypt_password_eye"
+                        密码：<span><input id="symmetric_password" placeholder="密码最好包含大小写字母、数字和标点符合..."
+                                style="width: 20rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password"><img src="../images/closeeye.png" id="symmetric_password_eye"
                                 style="width: 16px;"></span><br><br>
-                        公钥：<input id="encrypt_publicKey" placeholder="32个字节的压缩公钥"
-                            style="width: 47rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
-                        <button id="encrypt_btn">加密</button>
-                        <button id="decrypt_btn">解密</button>
-                        <button id="encrypt_reset">清空</button><br><br>
-                        结果：<br>
-                        <div id="encrypt_result"
-                            style="width: 50rem;border: 1px solid #dddddd;padding: 4px;color: gray;"></div>
+                        <button id="symmetric_encrypt_btn">加密</button>
+                        <button id="symmetric_decrypt_btn">解密</button>
+                        <button id="symmetric_reset">清空</button><br><br>
                     </div>
                 </details>
                 <details class="child" id="encode_manage">
@@ -1261,7 +1452,8 @@
                 <img src="images/pri.png" style="width: 900px;">
                 <p class="help">
                     我亲自测试了抛硬币产生私钥的方法，记下的二进制数是：1100111101001101000100000011000011111110110011100001000001110001101101110011001001000110011110010011110100000110110100111101000010001110101011010011100001010100100000011110111000101000110010111111011110110010001010000101100101110111001001111001100011010001。256位二进制不好记，转换成十六进制就好多了，比如我把刚才抛硬币产生的256位二进制数转换成十六进制数，就是这样的：cf4d1030fece1071b73246793d06d3d08ead385481ee28cbf7b22859772798d1。“尼玛，你玩儿我呢，还是不好记住啊。”“我靠，你就不知道写在纸上吗？”
-                    把私钥写在纸上就称为纸钱包，记在脑袋里就是脑钱包，放在电脑里就称为电子钱包。比特币和以太币都是采用256位随机二进制数作为私钥，因此同一个私钥既可以发起比特币交易也可以发起以太币交易，不过我建议你不要这么做，因为万一你忘记了这个私钥，你的一切加密币就Game Over了，或者万一私钥被盗，所有加密币面临被盗的风险。根据比特币专家的建议：你收到的每一笔转账都采用不同的私钥！也就是说使用私钥x接收张三转给你的三个比特，使用另一个私钥y接收李四转来的五个比特，如果王二也要给你放币，继续使用新的私钥。不过我的建议是：如果是大额转账就采用专家的建议，如果是小额度的，还是不要使用过多的私钥，否则不好管理。
+                    把私钥写在纸上就称为纸钱包，记在脑袋里就是脑钱包，放在电脑里就称为电子钱包。比特币和以太币都是采用256位随机二进制数作为私钥，因此同一个私钥既可以发起比特币交易也可以发起以太币交易，不过我建议你不要这么做，因为万一你忘记了这个私钥，你的一切加密币就Game
+                    Over了，或者万一私钥被盗，所有加密币面临被盗的风险。根据比特币专家的建议：你收到的每一笔转账都采用不同的私钥！也就是说使用私钥x接收张三转给你的三个比特，使用另一个私钥y接收李四转来的五个比特，如果王二也要给你放币，继续使用新的私钥。不过我的建议是：如果是大额转账就采用专家的建议，如果是小额度的，还是不要使用过多的私钥，否则不好管理。
                 </p>
                 <p class="help">为了便于把私钥导入钱包app，比特币会把十六进制的私钥转换成Base58编码的格式，称为WIF格式（Wallet Import
                     Format三单词的首字母缩写，意为钱包导入格式），例如我上面抛硬币产生的私钥换成WIF格式就是：L4AgDeoTPbdRd4S7X9UhXaNtyxZhDuj7EoUxPUndDYkvfmHjR8Cd。二进制表示的私钥、十六进制表示的私钥和WIF格式的私钥可以相互转换，因此你只要记住任何一个就行。
@@ -1351,13 +1543,16 @@
                 <p class="help">
                     （3）对于重度投资加密币的人，资金在千万元以上甚至数亿、乃至几十亿上百亿，每种加密币各用一组助记词，助记词包含24个单词，且采用长度不低于15个字符的密码来保护助记词，密码包含大小写字母、数字和其他符号。使用3、5个账户，每个账户里开设若干个钱包，合理规划账户和钱包的使用，每一笔超千万的大额转账单独使用一个钱包来收款，钱包的私钥必须用密码加密保护，签名时使用密文私钥和密码（临时解密私钥完成签名）。
                 </p>
-                <br><br><hr>
-                <p class="help" style="text-align: right; color: gray;">如有任何疑问，请随时给我们来邮件，我们的邮件地址是 admin@walletoffline.com</p>
+                <br><br>
+                <hr>
+                <p class="help" style="text-align: right; color: gray;">如有任何疑问，请随时给我们来邮件，我们的邮件地址是
+                    admin@walletoffline.com</p>
 
             </div>
         </main>
-        <footer><a href="https://github.com/veryopen/walletoffline" target="_blank" style="color: black;text-decoration: none;">On<img src="../images/github.png">Github</a>
-</footer>
+        <footer><a href="https://github.com/veryopen/walletoffline" target="_blank"
+                style="color: black;text-decoration: none;">On<img src="../images/github.png">Github</a>
+        </footer>
     </div>
     <dialog id="wallet_dialog">
         <h3 style="text-align: center;">我的对话框</h3>
@@ -1406,11 +1601,11 @@
     <dialog
         style="z-index: 9999;text-align: center;border-radius: 50%;border-style: none;position:relative;height: 120px;width:120px;box-shadow: 0px 3px 8px 0px rgba(0, 0, 0, 0.3);overflow: clip;"
         id="waiting">
-        <img src="../images/doing.gif" style="width: 100px;position: absolute;z-index: 100;left: 36%;top: 30px;">
-        <div
+        <img src="../images/doing.gif" style="width: 200px;position: absolute;z-index: 100;left: 0px;top: 10px;">
+        <!--div
             style="position: absolute;background: repeating-linear-gradient(-45deg,#666666, #666666 4%,#EEEEEE 4%, #EEEEEE 8%);width: 100%;height: 2rem;top: 60px;left: 0px;">
-        </div>
-        <p style="font-size: small;margin-top: 74px;">稍后，我正在努力…</p>
+        </div -->
+        <p style="font-size: small;margin-top: 88px;">稍后，我正在努力…</p>
     </dialog>
     <div id="help"
         style="overflow-y: scroll;width: 0px;height: 100%;border: 1px solid #DDD;position: fixed;background-color: white;top: 0px;right: 0px; transition: width 1s">

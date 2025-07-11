@@ -192,6 +192,18 @@ window.addEventListener("load", (evt) => {
         });
     });
 
+    document.querySelectorAll(".sunzi").forEach(e => {
+        e.addEventListener('toggle', (ev) => {
+            if (ev.target.open) {
+                document.querySelectorAll(".sunzi").forEach((d) => {
+                    if (ev.target != d) {
+                        d.removeAttribute('open');
+                    }
+                });
+            }
+        });
+    });
+
     document.getElementById('bitcoin_password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('seed_password').setAttribute('type', 'text');
@@ -415,8 +427,27 @@ window.addEventListener("load", (evt) => {
             <b style="width: 13rem;display: inline-block; text-align: right;">Account Extended Public Key:</b> ${hd_more.accPub}
         `;
     })
+    document.getElementById('fromWif_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('fromWif_password').setAttribute('type', 'text');
+    })
 
-    document.getElementById('fromWif_button').addEventListener('click', (et) => {
+    document.getElementById('fromWif_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('fromWif_password').setAttribute('type', 'password');
+    })
+
+    document.getElementById('fromWif_privateKey_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('fromWif_wif').setAttribute('type', 'text');
+    })
+
+    document.getElementById('fromWif_privateKey_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('fromWif_wif').setAttribute('type', 'password');
+    })
+
+    document.getElementById('fromWif_ok_btn').addEventListener('click', (et) => {
         let pri_wif = document.getElementById('fromWif_wif').value.trim();
         if (pri_wif == '') {
             alert("Please enter the private key first");
@@ -428,6 +459,33 @@ window.addEventListener("load", (evt) => {
         document.getElementById('private_td2').innerHTML = '';
         document.getElementById('public_td1').innerHTML = '';
         document.getElementById('public_td2').innerHTML = '';
+
+        if (pri_wif.slice(0, 2) == '6P') {
+            let password = document.getElementById('fromWif_password').value.trim();
+            if (password == '') {
+                alert('Private key is encrypted but no password provided!');
+                pri_wif = null;
+                return;
+            } else {//Private key is password protected, need to decrypt
+                try {
+                    openModal('Please wait, decrypting and signing…');
+                    if (!bip38.verify(pri_wif)) {
+                        throw new Error('Not a valid encrypted private key!');
+                    }
+                    let N = parseInt(document.getElementById('N_id').value.trim());
+                    let r = parseInt(document.getElementById('r_id').value.trim());
+                    let p = parseInt(document.getElementById('p_id').value.trim());
+                    let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
+                    pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    closeModal();
+                } catch (error) {
+                    pri_wif = null;
+                    closeModal();
+                    alert(error);
+                    return;
+                };
+            }
+        }
 
         try {
             let keyPair = ECPair.fromWIF(pri_wif, network);
@@ -474,6 +532,17 @@ window.addEventListener("load", (evt) => {
         }
     });
 
+    document.getElementById('fromWif_reset_btn').addEventListener('click', (ev) => {
+        document.getElementById('address_td1').innerHTML = '';
+        document.getElementById('address_td2').innerHTML = '';
+        document.getElementById('private_td1').innerHTML = '';
+        document.getElementById('private_td2').innerHTML = '';
+        document.getElementById('public_td1').innerHTML = '';
+        document.getElementById('public_td2').innerHTML = '';
+        document.getElementById('fromWif_wif').value = '';
+        document.getElementById('fromWif_password').value = '';
+    })
+
     document.getElementById('wallet_balance_btn').addEventListener('click', (et) => {
         let wallet_address = document.getElementById('wallet_address').value.trim();
         if (wallet_address == '') {
@@ -504,6 +573,115 @@ window.addEventListener("load", (evt) => {
         } else {
             view_tx(wallet_address);
         }
+    });
+
+    document.getElementById('bitcoin_segment_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('bitcoin_segment_password').setAttribute('type', 'text');
+        document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'text');
+    })
+    document.getElementById('bitcoin_segment_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('bitcoin_segment_password').setAttribute('type', 'password');
+        document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'password');
+    })
+
+    document.getElementById('bitcoin_signature_btn').addEventListener('click', (ev) => {
+        const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
+        if (segmentText == '') {
+            alert('The signed text cannot be empty!');
+            return;
+        }
+        let pri_wif = document.getElementById('bitcoin_segment_privateKey').value.trim();
+        if (pri_wif) {
+            if (pri_wif.slice(0, 2) == '6P') {
+                let password = document.getElementById('bitcoin_segment_password').value;
+                if (password == '') {
+                    pri_wif = null;
+                    alert('The private key has been encrypted, but the protection password for the private key has not been provided!');
+                    return;
+                } else {
+                    try {
+                        if (!bip38.verify(pri_wif)) {
+                            throw new Error('This is not a valid encryption private key!');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
+                        pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    } catch (error) {
+                        pri_wif = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+
+            let keyPair;
+            try {
+                keyPair = ECPair.fromWIF(pri_wif, network);
+            } catch (err) {
+                alert(err);
+                return;
+            }
+            const types = document.getElementsByName('addressType');
+            let addressType = 'p2pkh';
+            for (const e of types) {
+                if (e.checked) {
+                    addressType = e.value;
+                    break;
+                }
+            }
+            let signature;
+            if (addressType == 'p2pkh') {
+                signature = bitcoinjsMessage.sign(
+                    segmentText,
+                    keyPair.privateKey,
+                    keyPair.compressed
+                );
+            } else {
+                signature = bitcoinjsMessage.sign(
+                    segmentText,
+                    keyPair.privateKey,
+                    keyPair.compressed,
+                    { segwitType: addressType }
+                );
+            }
+            const signatureBase64 = signature.toString('base64');
+            document.getElementById('bitcoin_segment_result').value = signatureBase64;
+        }
+
+    })
+
+    document.getElementById('bitcoin_veify_btn').addEventListener('click', (ev) => {
+        const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
+        const signature = document.getElementById('bitcoin_segment_result').value.trim();
+        const p2wpkhAddress = document.getElementById('bitcoin_segment_address').value.trim();
+        if (!segmentText || !signature || !p2wpkhAddress) {
+            alert("The signed text, signature, and address cannot be missing!");
+            return;
+        }
+        let isValid;
+        try {
+            isValid = bitcoinjsMessage.verify(segmentText, p2wpkhAddress, signature);
+        } catch (err) {
+            const decodedP2wpkh = bitcoin.address.fromBech32(p2wpkhAddress);
+            const p2pkhAddress = bitcoin.address.toBase58Check(decodedP2wpkh.data, network.pubKeyHash);
+            isValid = bitcoinjsMessage.verify(segmentText, p2pkhAddress, signature);
+        }
+        ev.target.parentNode.querySelector('#bitcoin_segment_verify_result').style.visibility = 'visible';
+        ev.target.parentNode.querySelector('#bitcoin_segment_verify_result').setAttribute('src', isValid ? 'images/sign_ok.png' : 'images/sign_failed.png');
+
+    });
+
+    document.getElementById('bitcoin_reset_btn').addEventListener('click',(ev)=>{
+        document.getElementById('bitcoin_segment_verify_result').style.visibility = 'hidden';
+        document.getElementById('bitcoin_segment_text').value = '';
+        document.getElementById('bitcoin_segment_result').value = '';
+        document.getElementById('bitcoin_segment_address').value = '';
+        document.getElementById('bitcoin_segment_password').value = '';
+        document.getElementById('bitcoin_segment_privateKey').value = '';
     });
 
     document.getElementById('recover_wallet').addEventListener('click', (e) => {

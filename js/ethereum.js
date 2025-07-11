@@ -76,6 +76,260 @@ window.addEventListener("load", () => {
         }
     });
 
+    document.getElementById('ether_sign_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('ether_sign_private_password').setAttribute('type', 'text');
+        document.getElementById('ether_sign_privateKey').setAttribute('type', 'text');
+    })
+    document.getElementById('ether_sign_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('ether_sign_private_password').setAttribute('type', 'password');
+        document.getElementById('ether_sign_privateKey').setAttribute('type', 'password');
+    })
+
+    document.getElementById('ether_generate_sign_btn').addEventListener('click', (evt) => {
+        let signText = document.getElementById('ether_sign_text').value.trim();
+        if (signText == '') {
+            alert('The signed content cannot be empty!');
+            return;
+        }
+        let privateKeyHex = document.getElementById('ether_sign_privateKey').value.trim();
+        if (privateKeyHex.slice(0, 2) == '0x') {
+            privateKeyHex = privateKeyHex.slice(2);
+        }
+        if (privateKeyHex) {
+            if (privateKeyHex.slice(0, 2) == '6P') {
+                let password = document.getElementById('ether_sign_private_password').value;
+                if (password == '') {
+                    privateKeyHex = null;
+                    alert('The private key has been encrypted, but the protection password for the private key has not been provided!');
+                    return;
+                } else {
+                    try {
+                        if (!bip38.verify(privateKeyHex)) {
+                            throw new Error('This is not a valid encryption private key!');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        let decryptKey = bip38.decrypt(privateKeyHex, password, null, { N: N, r: r, p: p });
+                        privateKeyHex = Buffer.Buffer.from(decryptKey.privateKey).toString('hex');
+                    } catch (error) {
+                        privateKeyHex = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+            try {
+                const wallet = new ethers.Wallet('0x' + privateKeyHex);
+                const signature = wallet.signMessageSync(signText).slice(2);
+                //document.getElementById('sign_result').value = Buffer.Buffer.from(signature).toString('hex');
+                document.getElementById('ether_sign_result').value = signature;
+            } catch (err) {
+                alert("Signature failed!" + err);
+            }
+        }
+    })
+
+    document.getElementById('ether_virify_sign_btn').addEventListener('click', (evt) => {
+        let publicKey = document.getElementById('ether_sign_publicKey').value.trim();
+        let signature = document.getElementById('ether_sign_result').value.trim();
+        let signText = document.getElementById('ether_sign_text').value.trim();
+        if (!signText || !signature || !publicKey) {
+            alert('The signed document, public key, and signature are all essential and cannot be missing!');
+            return;
+        }
+        if (publicKey.slice(0, 2) == '0x') {
+            publicKey = publicKey.slice(2);
+        }
+
+        try {
+            let address = ethers.computeAddress('0x' + publicKey);
+            let address1 = ethers.verifyMessage(signText, '0x' + signature);
+            const isValid = address.toLowerCase() === address1.toLowerCase() ? true : false;
+
+            evt.target.parentNode.querySelector('#ether_verify_result').style.visibility = 'visible';
+            evt.target.parentNode.querySelector('#ether_verify_result').setAttribute('src', isValid ? 'images/sign_ok.png' : 'images/sign_failed.png');
+        } catch (err) {
+            alert("Signature failed!" + err);
+        }
+    })
+
+    document.getElementById('ether_sign_reset').addEventListener('click', (evt) => {
+        document.getElementById('ether_sign_text').value = '';
+        document.getElementById('ether_sign_privateKey').value = '';
+        document.getElementById('ether_sign_private_password').value = '';
+        document.getElementById('ether_sign_publicKey').value = '';
+        document.getElementById('ether_sign_result').value = '';
+        document.getElementById('ether_verify_result').style.visibility = 'hidden';
+    })
+
+    document.getElementById('pgp_sign_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('pgp_sign_password').setAttribute('type', 'text');
+    })
+    document.getElementById('pgp_sign_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('pgp_sign_password').setAttribute('type', 'password');
+    })
+
+    document.getElementById('pgp_sign_checkbox').addEventListener('click', (ev) => {
+        if (ev.target.checked) {
+            document.getElementById('pgp_newKey_div').style.display = 'block';
+        } else {
+            document.getElementById('pgp_newKey_div').style.display = 'none';
+        }
+    })
+
+    document.getElementById('pgp_generate_sign').addEventListener('click', async (ev) => {
+        const divBox = document.getElementById('pgp_newKey_div');
+        const name = divBox.querySelector('input[name="sign_name"]').value.trim();
+        const email = divBox.querySelector('input[name="sign_email"]').value.trim();
+        if (!name || !email) {
+            alert('Name and email cannot be empty!');
+            return;
+        }
+        const expire = parseInt(divBox.querySelector('input[name="sign_expire"]').value.trim()) * 85400;//换算成秒
+        let pgp_algo = 'ecc';
+        divBox.querySelectorAll('input[name="pgp_sign_algorithm"]').forEach(e => {
+            if (e.checked === true) {
+                pgp_algo = e.value;
+            }
+        });
+        const password = document.getElementById('pgp_sign_password').value.trim();
+
+        try {
+            const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({
+                type: pgp_algo,
+                //            curve: 'curve25519',
+                userIDs: [{
+                    name: name,
+                    email: email
+                }],
+                format: 'armored',
+                keyExpirationTime: expire,
+                passphrase: password
+            });
+
+            const privateObj = await openpgp.readPrivateKey({
+                armoredKey: privateKey
+            });
+    
+            const fingerprint = privateObj.getFingerprint();
+            
+            document.getElementById('pgp_fingerprint').value = fingerprint.toUpperCase().match(/.{1,4}/g).join(' ');    
+            document.getElementById('pgp_sign_publicKey').value = publicKey;
+            document.getElementById('pgp_sign_privateKey').value = privateKey;
+        } catch (err) {
+            alert(err);
+        }
+    });
+
+    document.getElementById('pgp_sign_btn').addEventListener('click', async (ev) => {
+        const fileInput = document.getElementById('pgp_original_file');
+        const private_key = document.getElementById('pgp_sign_privateKey').value;
+        if (!fileInput.files.length || !private_key) {
+            alert('The signed document and PGP private key cannot be empty!');
+            return;
+        }
+
+        try {
+            const passphrase = document.getElementById('pgp_sign_password').value.trim();
+
+            let privateKey;
+            if (passphrase == '') {
+                privateKey = await openpgp.readPrivateKey({ armoredKey: private_key });
+            } else {
+                privateKey = await openpgp.decryptKey({
+                    privateKey: await openpgp.readPrivateKey({ armoredKey: private_key }),
+                    passphrase
+                });
+            }
+            const file = fileInput.files[0];
+            const fileData = await file.arrayBuffer();
+
+            const signature = await openpgp.sign({
+                message: await openpgp.createMessage({ binary: new Uint8Array(fileData) }),
+                signingKeys: privateKey,
+                detached: true,
+                date: new Date(),
+                format: 'binary'
+            });
+
+            const fingerprint = privateKey.getFingerprint();
+            
+            document.getElementById('pgp_fingerprint').value = fingerprint.toUpperCase().match(/.{1,4}/g).join(' ');    
+
+            const blob = new Blob([signature], { type: 'application/octet-stream' });
+            triggerDownload(blob, file.name + '.sig');
+        } catch (error) {
+            alert('Signature Failed:' + error);
+        }
+
+    })
+
+    document.getElementById('pgp_verify_btn').addEventListener('click', async (ev) => {
+        const origin_file = document.getElementById('pgp_original_file');
+        const sign_file = document.getElementById('pgp_sign_file');
+        const public_key = document.getElementById('pgp_sign_publicKey').value;
+        if (!origin_file.files.length || !sign_file.files.length || !public_key) {
+            alert('The original file, signed file, and PGP public key cannot be empty!');
+            return;
+        }
+
+        try {
+            const [originalFile, signatureFile] = await Promise.all([
+                origin_file.files[0].arrayBuffer(),
+                sign_file.files[0].arrayBuffer()
+            ]);
+
+            const signature = await openpgp.readSignature({
+                binarySignature: new Uint8Array(signatureFile)
+            });
+
+            const publicKey = await openpgp.readKey({ armoredKey: public_key });
+
+            const verificationResult = await openpgp.verify({
+                message: await openpgp.createMessage({ binary: new Uint8Array(originalFile) }),
+                signature: await openpgp.readSignature({ binarySignature: new Uint8Array(signatureFile) }),
+                verificationKeys: publicKey
+            });
+
+            const { verified, keyID } = verificationResult.signatures[0];
+            await verified;
+
+            const fingerprint = publicKey.getFingerprint();
+            
+            document.getElementById('pgp_fingerprint').value = fingerprint.toUpperCase().match(/.{1,4}/g).join(' ');    
+
+            const resultElement = document.getElementById('pgp_verificationResult');
+            resultElement.innerHTML = `
+                <p>✓ Signature verification successful!</p>
+                <p>Signer's key ID: ${keyID.toHex()}</p>
+                <p>Signature time: ${new Date(signature.packets[0].created).toLocaleString()}</p>
+            `;
+            resultElement.style.color = 'green';
+        } catch (error) {
+            document.getElementById('pgp_verificationResult').innerHTML =
+                `<p style="color: red;">✗ Signature verification failed:<br> ${error.message}</p>`;
+            document.getElementById('pgp_verificationResult').style.color = 'red';
+        }
+        document.getElementById('pgp_verificationResult').style.display = 'block';
+    })
+
+    document.getElementById('pgp_sign_reset').addEventListener('click', (ev) => {
+        document.getElementById('pgp_original_file').value = '';
+        document.getElementById('pgp_sign_file').value = '';
+        document.getElementById('pgp_sign_privateKey').value = '';
+        document.getElementById('pgp_sign_password').value = '';
+        document.getElementById('pgp_sign_publicKey').value = '';
+        document.getElementById('pgp_fingerprint').value = '';
+        document.getElementById('pgp_newKey_div').style.display = 'none';
+        document.getElementById('pgp_verificationResult').style.display = 'none';
+    })
+
+
     document.getElementById('ethereum_fee').addEventListener('blur', (evt) => {
         document.getElementById('ethereum_priority_fee').value = (parseFloat(evt.target.value.trim()) * 0.99).toFixed(2);
     })
@@ -269,7 +523,7 @@ window.addEventListener("load", () => {
         closeModal();
     })
 
-    document.getElementById('ens_reset').addEventListener('click',(evt)=>{
+    document.getElementById('ens_reset').addEventListener('click', (evt) => {
         document.getElementById('ens_name').value = '';
         document.getElementById('ethereum_address').value = '';
     })
@@ -334,7 +588,7 @@ window.addEventListener("load", () => {
     })
 
     document.getElementById('encrypt_password_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', '../images/openeye.png');
+        ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('encrypt_private_password').setAttribute('type', 'text');
         document.getElementById('encrypt_private_key').setAttribute('type', 'text');
     })
@@ -342,6 +596,15 @@ window.addEventListener("load", () => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('encrypt_private_password').setAttribute('type', 'password');
         document.getElementById('encrypt_private_key').setAttribute('type', 'password');
+    })
+
+    document.getElementById('symmetric_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('symmetric_password').setAttribute('type', 'text');
+    })
+    document.getElementById('symmetric_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('symmetric_password').setAttribute('type', 'password');
     })
 
     document.getElementById('steganography_password_eye').addEventListener("mousedown", (ev) => {
@@ -622,23 +885,31 @@ window.addEventListener("load", () => {
 
     })
 
-    document.getElementById('sign_file').addEventListener('change', function (event) {
+    document.getElementById('sign_file').addEventListener('change', async function (event) {
         const file = event.target.files[0];
 
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const hash = bitcoin.crypto.sha256(reader.result);
-                document.getElementById('sign_digest').innerHTML = hash.toString('hex');
-            }
-            reader.readAsArrayBuffer(file);
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            document.getElementById('sign_digest').value = hashHex;
+
+        } catch (error) {
+            alert('Failed!' + error);
         }
     });
 
     document.getElementById('generate_sign_btn').addEventListener('click', (evt) => {
-        let digest = document.getElementById('sign_digest').innerText;
-        const hash = Uint8Array.from(Buffer.Buffer.from(digest, 'hex'));
+        let digest = document.getElementById('sign_digest').value.trim();
+        if (digest == '') {
+            alert('The document summary (or the signed content) cannot be empty!');
+            return;
+        }
         let privateKeyHex = document.getElementById('sign_privateKey').value.trim();
+        if (privateKeyHex.slice(0, 2) == "0x") {
+            privateKeyHex = privateKeyHex.slice(2);
+        }
         if (privateKeyHex) {
             if (privateKeyHex.slice(0, 2) == '6P') {
                 let password = document.getElementById('sign_private_password').value;
@@ -646,7 +917,7 @@ window.addEventListener("load", () => {
                     privateKeyHex = null;
                     alert('The private key has been encrypted, but no protection password for the private key has been provided!');
                     return;
-                } else {
+                } else {//The private key is password protected and needs to be decrypted.
                     try {
                         if (!bip38.verify(privateKeyHex)) {
                             throw new Error('Not a valid encryption private key!');
@@ -664,33 +935,48 @@ window.addEventListener("load", () => {
                 }
             }
 
-            const privateKey = Buffer.Buffer.from(privateKeyHex, 'hex');
-            const keyPair = ECPair.fromPrivateKey(privateKey);
+            try {
+                const hash = Uint8Array.from(Buffer.Buffer.from(digest, 'hex'));
+                const privateKey = Buffer.Buffer.from(privateKeyHex, 'hex');
+                const keyPair = ECPair.fromPrivateKey(privateKey);
 
-            const signature = bitcoinerlabsecp256k1.signSchnorr(hash, keyPair.privateKey);
-            document.getElementById('sign_result').value = Buffer.Buffer.from(signature).toString('hex');
+                // 3. Schnorr
+                let signature = bitcoinerlabsecp256k1.signSchnorr(hash, keyPair.privateKey);
+                signature = Buffer.Buffer.from(signature).toString('hex');
+                document.getElementById('sign_result').value = signature;
+            } catch (err) {
+                alert('Signature Failed!' + err);
+            }
         }
     })
 
     document.getElementById('virify_sign_btn').addEventListener('click', (evt) => {
         let publicKey = document.getElementById('sign_publicKey').value.trim();
         let signature = document.getElementById('sign_result').value.trim();
-        let digest = document.getElementById('sign_digest').innerText;
+        let digest = document.getElementById('sign_digest').value.trim();
         if (!digest || !signature || !publicKey) {
-            alert('The signed document, public key, and signature are all essential!');
+            alert('The signed file (or text inputed), public key, and signature are all essential and cannot be missing!');
             return;
         }
-        publicKey = bitcoinerlabsecp256k1.xOnlyPointFromPoint(Buffer.Buffer.from(publicKey, 'hex'));
-        signature = Uint8Array.from(Buffer.Buffer.from(signature, 'hex'));
-        digest = Uint8Array.from(Buffer.Buffer.from(digest, 'hex'));
-        const isValid = bitcoinerlabsecp256k1.verifySchnorr(digest, publicKey, signature);
-        evt.target.parentNode.querySelector('#verify_result').style.visibility = 'visible';
-        evt.target.parentNode.querySelector('#verify_result').setAttribute('src', isValid ? 'images/sign_ok.png' : 'images/sign_failed.png');
+        if (publicKey.slice(0, 2) == '0x') {
+            publicKey = publicKey.slice(2);
+        }
+
+        try {
+            const publicKeyBuf = bitcoinerlabsecp256k1.xOnlyPointFromPoint(Buffer.Buffer.from(publicKey, 'hex'));
+            const signatureBuf = Uint8Array.from(Buffer.Buffer.from(signature, 'hex'));
+            const digestBuf = Uint8Array.from(Buffer.Buffer.from(digest, 'hex'));
+            let isValid = bitcoinerlabsecp256k1.verifySchnorr(digestBuf, publicKeyBuf, signatureBuf);
+            evt.target.parentNode.querySelector('#verify_result').style.visibility = 'visible';
+            evt.target.parentNode.querySelector('#verify_result').setAttribute('src', isValid ? 'images/sign_ok.png' : 'images/sign_failed.png');
+        } catch (err) {
+            alert('Verify failed! ' + err);
+        }
     })
 
     document.getElementById('sign_reset').addEventListener('click', (evt) => {
         document.getElementById('sign_file').value = '';
-        document.getElementById('sign_digest').innerHTML = '';
+        document.getElementById('sign_digest').value = '';
         document.getElementById('sign_privateKey').value = '';
         document.getElementById('sign_private_password').value = '';
         document.getElementById('sign_publicKey').value = '';
@@ -824,6 +1110,214 @@ window.addEventListener("load", () => {
         document.getElementById('encrypt_private_password').value = '';
         document.getElementById('encrypt_publicKey').value = '';
         document.getElementById('encrypt_result').innerHTML = '';
+    })
+
+    document.getElementById('pgp_encrypt_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('pgp_private_password').setAttribute('type', 'text');
+    })
+    document.getElementById('pgp_encrypt_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('pgp_private_password').setAttribute('type', 'password');
+    })
+
+    document.getElementById('pgp_checkbox').addEventListener('click', (ev) => {
+        if (ev.target.checked) {
+            document.getElementById('pgp_generate_div').style.display = 'block';
+        } else {
+            document.getElementById('pgp_generate_div').style.display = 'none';
+        }
+    })
+
+    document.getElementById('pgp_generate_btn').addEventListener('click', async (ev) => {
+        const divBox = document.getElementById('pgp_generate_div');
+        const name = divBox.querySelector('input[name="name"]').value.trim();
+        const email = divBox.querySelector('input[name="email"]').value.trim();
+        if (!name || !email) {
+            alert('Name and email cannot be empty');
+            return;
+        }
+        const expire = parseInt(divBox.querySelector('input[name="expire"]').value.trim()) * 85400;//换算成秒
+        let pgp_algo = 'ecc';
+        divBox.querySelectorAll('input[name="pgp_algorithm"]').forEach(e => {
+            if (e.checked === true) {
+                pgp_algo = e.value;
+            }
+        });
+        const password = document.getElementById('pgp_private_password').value.trim();
+        /*         const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({
+                    type: pgp_algo,
+                    rsaBits: 4096,
+                    userIDs: [{
+                        name: name,
+                        email: email,
+                        keyExpirationTime: expire
+                    }],
+                    passphrase: password
+                });
+         */
+        try {
+            const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({
+                type: pgp_algo,
+                //            curve: 'curve25519',
+                userIDs: [{
+                    name: name,
+                    email: email
+                }],
+                format: 'armored',
+                keyExpirationTime: expire,
+                passphrase: password
+            });
+
+            document.getElementById('pgp_public_key').value = publicKey;
+            document.getElementById('pgp_private_key').value = privateKey;
+        } catch (err) {
+            alert(err);
+        }
+    });
+
+    document.getElementById('pgp_encrypt_btn').addEventListener('click', async (ev) => {
+        const fileInput = document.getElementById('pgp_encrypt_file');
+        const public_key = document.getElementById('pgp_public_key').value;
+        if (!fileInput.files.length || !public_key) {
+            alert('The encrypted file and public key cannot be empty!');
+            return;
+        }
+        try {
+            const publicKey = await openpgp.readKey({ armoredKey: public_key });
+
+            const file = fileInput.files[0];
+            const fileContent = await file.arrayBuffer();
+
+            const message = await openpgp.createMessage({ binary: new Uint8Array(fileContent) });
+            const encrypted = await openpgp.encrypt({
+                message,
+                encryptionKeys: publicKey,
+                format: 'binary'
+            });
+
+            const blob = new Blob([encrypted], { type: 'application/pgp-encrypted' });
+            //const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+            triggerDownload(blob, file.name + '.pgp');
+        } catch (error) {
+            alert('Encrypt Failed:' + error);
+        }
+    })
+
+    document.getElementById('pgp_decrypt_btn').addEventListener('click', async (ev) => {
+        const fileInput = document.getElementById('pgp_encrypt_file');
+        const private_key = document.getElementById('pgp_private_key').value;
+        if (!fileInput.files.length || !private_key) {
+            alert('The decrypted files and private keys cannot be empty!');
+            return;
+        }
+
+        try {
+            const passphrase = document.getElementById('pgp_private_password').value.trim();
+
+            let privateKey;
+            if (passphrase == '') {
+                privateKey = await openpgp.readPrivateKey({ armoredKey: private_key });
+            } else {
+                privateKey = await openpgp.decryptKey({
+                    privateKey: await openpgp.readPrivateKey({ armoredKey: private_key }),
+                    passphrase
+                });
+            }
+
+            const file = fileInput.files[0];
+            let destFile = 'decrypted_file';
+            if (file.name.slice(-4) == '.pgp') {
+                destFile = file.name.slice(0, file.name.length - 4);
+            }
+            const encryptedData = await file.arrayBuffer();
+            const message = await openpgp.readMessage({ binaryMessage: new Uint8Array(encryptedData) });
+            const { data: decrypted } = await openpgp.decrypt({
+                message,
+                decryptionKeys: privateKey,
+                format: 'binary'
+            });
+
+            const blob = new Blob([decrypted], { type: 'application/pgp-encrypted' });
+            triggerDownload(blob, destFile);
+        } catch (error) {
+            alert('Decrypt Failed:' + error);
+        }
+    })
+
+    document.getElementById('pgp_encrypt_reset').addEventListener('click', (ev) => {
+        document.getElementById('pgp_encrypt_file').value = '';
+        document.getElementById('pgp_private_key').value = '';
+        document.getElementById('pgp_private_password').value = '';
+        document.getElementById('pgp_public_key').value = '';
+        document.getElementById('pgp_generate_div').style.display = 'none';
+
+    })
+
+    document.getElementById('symmetric_encrypt_btn').addEventListener('click', async (ev) => {
+        const fileInput = document.getElementById('symmetric_file');
+        const password = document.getElementById('symmetric_password').value.trim();
+        if (!fileInput.files.length || !password) {
+            alert('Please select a file and enter the password.');
+            return;
+        }
+
+        try {
+            const file = fileInput.files[0];
+            const fileData = await file.arrayBuffer();
+            const plaintextMessage = await openpgp.createMessage({ binary: new Uint8Array(fileData) });
+
+            const encrypted = await openpgp.encrypt({
+                message: plaintextMessage,
+                passwords: [password],
+                format: 'binary'
+            });
+
+            const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+            triggerDownload(blob, file.name + '.pgp');
+        } catch (error) {
+            alert(`Encryption failed: ${error.message}`);
+        }
+
+    })
+
+    document.getElementById('symmetric_decrypt_btn').addEventListener('click', async (ev) => {
+        const fileInput = document.getElementById('symmetric_file');
+        const password = document.getElementById('symmetric_password').value.trim();
+        if (!fileInput.files.length || !password) {
+            alert('Please select a file and enter the password.');
+            return;
+        }
+
+        try {
+            const encryptedFile = fileInput.files[0];
+            const encryptedData = new Uint8Array(await encryptedFile.arrayBuffer());
+
+            const message = await openpgp.readMessage({ binaryMessage: encryptedData });
+
+            const { data: decrypted, signatures } = await openpgp.decrypt({
+                message: message,
+                passwords: [password],
+                format: 'binary'
+            });
+
+            const blob = new Blob([decrypted], { type: 'application/octet-stream' });
+
+            const originalFilename = encryptedFile.name.replace(/\.(pgp|gpg)$/i, '') || 'decrypted_file';
+            triggerDownload(blob, originalFilename);
+
+        } catch (error) {
+            if (error.message.includes('password')) {
+                alert('Decryption failed: Incorrect password or file is corrupted.');
+            } else {
+                alert(`Decryption failed: ${error.message}`);
+            }
+        }
+    })
+
+    document.getElementById('symmetric_reset').addEventListener('click', (ev) => {
+        document.getElementById('symmetric_file').value = '';
+        document.getElementById('symmetric_password').value = '';
     })
 
     document.getElementById('encode_btn').addEventListener('click', (evt) => {

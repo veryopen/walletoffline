@@ -26,6 +26,8 @@
     <!--script src="js/tiny-secp256k1.js"></script -->
     <script src="js/ethers.umd.min.js"></script><!--Import ethers object-->
     <script src="js/wordlists-extra.umd.min.js"></script><!--Import ethers object-->
+    <script src="js/openpgp.min.js"></script><!--导入openpgp对象-->
+    <script src="js/bitcoinjs-message.min.js"></script><!--导入bitcoinjsMessage对象-->
 
     <!--Ethereum JS Libraries-->
     <!--script type="module">
@@ -182,9 +184,19 @@
                                     </p>
                                 </details>
                                 <hr>
-                                <input size="70" id="fromWif_wif"
-                                    placeholder="Manually enter or copy the private key (WIF format) in segments...">
-                                <button id="fromWif_button">Go</button>
+
+                                Private Key:&nbsp;<span><input type="password" size="70" id="fromWif_wif"
+                                        placeholder="Manually enter or copy the private key (WIF format) in segments..."
+                                        style="border-style: none; border-bottom: 1px solid black; outline-style: none; color: green;"><img
+                                        src="images/closeeye.png" id="fromWif_privateKey_eye"
+                                        style="width:16px"></span><br>
+                                &nbsp;&nbsp;&nbsp;Password:&nbsp;<span><input type="password" id="fromWif_password"
+                                        style="border-style: none; border-bottom: 1px solid black; outline-style: none; color: green;width: 14rem;">
+                                    <img src="images/closeeye.png" id="fromWif_password_eye" style="width:16px"></span>
+                                <span style="color: gray; font-size: small;">&nbsp;(If the private key is encrypted,
+                                    please enter the password)</span><br>
+                                <br><button id="fromWif_ok_btn">Go</button>&nbsp;<button
+                                    id="fromWif_reset_btn">Reset</button>
                                 <table style="margin: 20px 0px;">
                                     <tr>
                                         <td colspan="2" style="border-bottom: 1px dotted #999;">1. Various Address
@@ -303,6 +315,45 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>Signature / Verification</summary>
+                            <div style="position: relative;">
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Sign a piece of text with a Bitcoin private key, or verify the signature of a
+                                        piece of text.
+                                    </p>
+                                </details>
+                                <hr />
+                                Signed content:<br><textarea id="bitcoin_segment_text"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: gray;"></textarea><br><br>
+                                Private Key:&nbsp;<input id="bitcoin_segment_privateKey"
+                                    placeholder="WIF format or encrypted private key..."
+                                    style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password">Password:&nbsp;<span><input id="bitcoin_segment_password"
+                                        style="width: 150px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password"><img src="images/closeeye.png" id="bitcoin_segment_eye"
+                                        style="width: 16px;"></span><br><br>
+                                Address:&nbsp;<input id="bitcoin_segment_address" placeholder="Bitcoin Address ..."
+                                    style="width: 600px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                                Type of address:&nbsp;<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                    <label style="margin-right: 2rem;">P2PKH <input type="radio" name="addressType"
+                                            value="p2pkh"></label>
+                                    <label style="margin-right: 2rem;">P2SH(P2WPKH) <input type="radio"
+                                            name="addressType" value="p2sh(p2wpkh)"></label>
+                                    <label style="margin-right: 2rem;">P2WPKH <input type="radio" name="addressType"
+                                            value="p2wpkh" checked></label></span><br><br>
+                                Signature(Base64 encoded):<br>
+                                <textarea id="bitcoin_segment_result"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: #666666;"></textarea><br><br>
+                                <button id="bitcoin_signature_btn">Signature</button>
+                                <button id="bitcoin_veify_btn">Verify</button>
+                                <button id="bitcoin_reset_btn">Reset</button>
+                                <img id="bitcoin_segment_verify_result" src="images/sign_ok.png"
+                                    style="position: absolute;top: 284px;width: 110px;left: 640px;visibility: hidden;">
                             </div>
                         </details>
                     </div>
@@ -742,7 +793,7 @@
                                 <p><span
                                         style="width: 15rem; display: inline-block; text-align: right;">Mnemonic:</span>
                                     <textarea id="ethereum_mnemonic"
-                                        style="width: 49rem;border: 1px dotted #DDD;border-bottom: 1px solid #888;color: green;outline-style: none;"
+                                        style="width: 52rem;border: 1px dotted #DDD;border-bottom: 1px solid #888;color: green;outline-style: none;"
                                         placeholder="Automatically generated mnemonic will appear here, or enter mnemonic to recover a wallet."></textarea>
                                 </p>
                                 <p><span style="width: 15rem; display: inline-block; text-align: right;">Mnemonic
@@ -761,7 +812,7 @@
                                 </p>
                                 <p><span style="width: 15rem; display: inline-block; text-align: right;">Private
                                         Key:</span> <input id="ethereum_new_privatekey"
-                                        style="width: 26rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
                                         type="password">
                                     <span>　Private Key Password:
                                         <input id="ethereum_new_private_password"
@@ -796,6 +847,46 @@
                                     placeholder="Enter wallet address or transaction ID...">
                                 <button id="ethereum_wallet_balance_btn">Go</button>
                                 <p id="ethereum_view_wallet_balance"></p>
+                            </div>
+                        </details>
+                        <details class="child">
+                            <summary>Signature / Verification</summary>
+                            <div style="position: relative;">
+                                <details>
+                                    <summary style="color: #555;">Help</summary>
+                                    <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                        Sign a piece of text to identify the owner of the address, similar to a
+                                        handwritten signature in real life. Use the private key to sign and the public
+                                        key to verify the signature. The signed text cannot be modified; otherwise, the
+                                        signature verification will fail. The other party must obtain the text, public
+                                        key, and signature in order to verify the signature. The private key must be a
+                                        string represented in hexadecimal format, such as
+                                        c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2. The public key
+                                        is also a hexadecimal string and must have the 0x prefix removed, for example
+                                        02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4.
+                                    </p>
+                                </details>
+                                <hr />
+                                Signed Content:<br><textarea id="ether_sign_text"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: gray;"></textarea><br><br>
+                                Private Key:&nbsp;<input id="ether_sign_privateKey"
+                                    placeholder="A hexadecimal format string (i.e., hex encoding), with the prefix 0x removed."
+                                    style="width: 30rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password">Password:&nbsp;<span><input id="ether_sign_private_password"
+                                        style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                        type="password"><img src="images/closeeye.png" id="ether_sign_password_eye"
+                                        style="width: 16px;"></span><br><br>
+                                Public Key:&nbsp;<input id="ether_sign_publicKey"
+                                    placeholder="Do not include the prefix '0x'"
+                                    style="width: 600px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                                Signature(Base64 encoded):<br>
+                                <textarea id="ether_sign_result" placeholder="Signature ……"
+                                    style="width: 49rem;height: 3rem;padding: 2px 10px;color: #666666;"></textarea><br><br>
+                                <button id="ether_generate_sign_btn">Signature</button>
+                                <button id="ether_virify_sign_btn">Verify</button>
+                                <button id="ether_sign_reset">Reset</button>
+                                <img id="ether_verify_result" src="images/sign_ok.png"
+                                    style="position: absolute;top: 246px;width: 110px;left: 600px;visibility: hidden;">
                             </div>
                         </details>
                     </div>
@@ -1204,97 +1295,203 @@
                     </div>
                 </details>
                 <details class="child" id="sign_manage">
-                    <summary>Signature and Verification</summary>
+                    <summary>Signature / Verification</summary>
                     <div style="position: relative;">
                         <details>
                             <summary style="color: #555;">Help</summary>
                             <p style="line-height: 1.8rem;color:#888;font-size: small;">
-                                Digital signatures are used to affirm the ownership of documents, similar to handwritten
-                                signatures in real life. A private key is used to sign, while a public key is used to
-                                verify the signature. The signed document cannot be changed; otherwise, the signature
-                                verification will fail. The other party must obtain the document, public key, and
-                                signature before being able to verify the signature. The private key must be a
-                                hex-encoded string, for example,
-                                c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2. The public key is also
-                                a hex-encoded string and must have the 0x prefix removed, for instance,
-                                02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4. Current popular
-                                signature algorithms include Schnorr, ECDSA, DSA, and RSA; Schnorr is more advanced, but
-                                currently, it is not as widely used as ECDSA. </p>
-                            <p style="color: rgb(238, 89, 89);font-size: small;">
-
+                                To sign a document is to assert the ownership of the document, similar to a handwritten signature in real life. Use a private key to sign and a public key to verify the signature. The signed text cannot be altered, or the signature verification will fail. The other party must obtain the original document, public key, and signature in order to verify the signature. Cryptocurrency keys are generally not used to sign documents, as revealing the private key would compromise privacy. In everyday life, PGP-compatible keys are usually used for signing and verifying signatures. Therefore, two signing methods are provided here: the first method uses cryptocurrency keys, and the second uses PGP-compatible encryption. When using the first method, two points must be noted: the private key must be a string represented in hexadecimal format, that is, hex encoding, such as c6f53ee725f194b9bc8d06b61b91fa1d2fb6884d2a36fe037579bbb950f67ee2. The public key is also a hex-encoded hexadecimal string and must have the 0x prefix removed, for example, 02f7eb7c084a14c30a3a5e6e0dcc10a9881ebf90ba45039f366d1919559c92f3c4.
                             </p>
                         </details>
                         <hr />
-                        Select the signed document:
-                        <input type="file" id="sign_file"
-                            style="outline-style: none;border-bottom: 1px solid black;"><br>
-                        Document summary:&nbsp;<div id="sign_digest"
-                            style="width: 50rem;height: 1rem;border: 1px solid #dddddd;padding: 4px;color: gray;text-align: center;">
-                        </div><br>
-                        Private Key:&nbsp;<input id="sign_privateKey"
-                            placeholder="A string in hexadecimal format (i.e. hex encoding) should have the prefix 0x removed."
-                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                            type="password"><br><br>Private key protection password:&nbsp;<span><input
-                                id="sign_private_password"
-                                style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                                type="password"><img src="images/closeeye.png" id="sign_password_eye"
-                                style="width: 16px;"></span><br><br>
-                        Public Key:&nbsp;<input id="sign_publicKey"
-                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
-                        Signature algorithm:&nbsp;<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
-                        <label style="margin-right: 2rem;">ECDSA <input type="radio" name="algorithm" disabled></label>
-                        <label style="margin-right: 2rem;">Schnorr <input type="radio" name="algorithm" checked></label>
-                        <label style="margin-right: 2rem;">DSA <input type="radio" name="algorithm" disabled></label>
-                        <label>RSA <input type="radio" name="algorithm" disabled></label></span><br><br>
-                        Signature result:&nbsp;<br>
-                        <textarea id="sign_result" placeholder="签名……"
-                            style="width: 49rem;height: 2rem;padding: 12px;color: #666666;"></textarea><br>
-                        <button id="generate_sign_btn">Signature</button>
-                        <button id="virify_sign_btn">Virification</button>
-                        <button id="sign_reset">Reset</button>
-                        <img id="verify_result" src="images/sign_ok.png"
-                            style="position: absolute;top: 20rem;width: 110px;left: 30rem; visibility: hidden">
-                    </div>
-                    <div
-                        style="position: absolute;background-color: white;border: 1px solid gray;box-shadow: 0px 3px 5px 0px rgba(0, 0, 0, 0.2);top: 10rem;left: 10rem; visibility: hidden">
-                        <img id="steganographyed_image">
-                        <p style="text-align: center;"><a href="#"
-                                style="border: 1px solid gray; padding: 4px;background-color: #eee; text-decoration: none;color: black; font-size: 0.89rem;">Save
-                                Image</a><button id="close_hidden_image">Close</button></p>
+                        <details class="sunzi">
+                            <summary style="color: red;">Use cryptocurrency keys</summary>
+                            <br>Select the signed document:
+                            <input type="file" id="sign_file"
+                                style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                            File's digest:<br><textarea id="sign_digest" disabled
+                                style="width: 49rem;height: 3rem;padding: 2px 10px;color: gray;"></textarea><br><br>
+                            Private Key:&nbsp;<input id="sign_privateKey"
+                                placeholder="A string in hexadecimal format (i.e. hex encoding) should have the prefix 0x removed."
+                                style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password"><br><br>Private key protection password:&nbsp;<span><input
+                                    id="sign_private_password"
+                                    style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="images/closeeye.png" id="sign_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            Public Key:&nbsp;<input id="sign_publicKey"
+                                style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                            Signature algorithm:&nbsp;<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                <label style="margin-right: 2rem;">ECDSA <input type="radio" name="algorithm"
+                                        disabled></label>
+                                <label style="margin-right: 2rem;">Schnorr <input type="radio" name="algorithm"
+                                        checked></label>
+                                <label style="margin-right: 2rem;">DSA <input type="radio" name="algorithm"
+                                        disabled></label>
+                                <label>RSA <input type="radio" name="algorithm" disabled></label></span><br><br>
+                            Signature result (Hex Encoded):<br>
+                            <textarea id="sign_result" placeholder="signature ……"
+                                style="width: 49rem;height: 3rem;padding: 2px 10px;color: #666666;"></textarea><br><br>
+                            <button id="generate_sign_btn">Signature</button>
+                            <button id="virify_sign_btn">Virification</button>
+                            <button id="sign_reset">Reset</button>
+                            <img id="verify_result" src="images/sign_ok.png"
+                                style="position: absolute;top: 364px;width: 110px;left: 600px; visibility: hidden"><br><br>
+                        </details>
+                        <details class="sunzi" style="position: relative;">
+                            <summary style="color: red;">Use PGP keys</summary>
+                            <br>Orginal File:&nbsp;<input type="file" id="pgp_original_file"
+                                style="outline-style: none;border-bottom: 1px solid black; width: 500px;"><br>
+                            Signature File:&nbsp;<input type="file" id="pgp_sign_file"
+                                style="outline-style: none;border-bottom: 1px solid black; width: 500px;"><br><br>
+                            PGP Private Kye:&nbsp;<textarea id="pgp_sign_privateKey"
+                                style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----"></textarea><br>
+                            Private Key Protection Password:&nbsp;<span><input id="pgp_sign_password"
+                                    style="width: 200px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="images/closeeye.png" id="pgp_sign_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            PGP Public Key:&nbsp;<textarea id="pgp_sign_publicKey" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;...&#10;-----END PGP PUBLIC KEY BLOCK-----"></textarea>
+                            <br>
+                            Fingerprint:&nbsp;<input id="pgp_fingerprint"
+                                style="width: 500px;border: none; border-bottom: 1px solid #888;outline-style: none;"
+                                disabled><br><br>
+                            Generate a new key?&nbsp;<input type="checkbox" id="pgp_sign_checkbox">
+                            <div style="padding: 10px;width: 760px;border: 1px solid #CCC;margin: 4px 0px;background-color: #FAFAFA; display:none;"
+                                id="pgp_newKey_div">
+                                Your Name:&nbsp;<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="sign_name"><br>
+                                Your Email:&nbsp;<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="sign_email"><br>
+                                Type of Key:&nbsp;<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                    <label style="margin-right: 2rem;">RSA <input type="radio" name="pgp_sign_algorithm"
+                                            value="rsa"></label>
+                                    <label style="margin-right: 2rem;">ECC <input type="radio" name="pgp_sign_algorithm"
+                                            checked="" value="ecc"></label>
+                                    <label style="margin-right: 2rem;">DSA <input type="radio" name="pgp_sign_algorithm"
+                                            value="dsa"></label>
+                                </span><br>
+                                Key validity period:&nbsp;<input
+                                    style="border-style: none;border-bottom: 1px solid black;color: green;width: 40px;text-align: right;"
+                                    name="sign_expire" value="0"><span style="color:gray;">&nbsp;(Unit 'day', 0 means
+                                    permanently valid)</span><br>
+                                    <p style="color: red; font-size:small;"> If you want to generate a password-protected key, please enter the password at "Private Key Protection Password:" above.</p>
+
+                                <p style="text-align: center; margin-bottom: 0px;"><button
+                                        id="pgp_generate_sign">Generate Key</button></p>
+                            </div><br>
+                            <div style="position: absolute;border: 1px solid green;padding: 10px;transform: rotate(-25deg);background-color: white;border-radius: 10px;top: 300px;left: 500px;color: green; display: none;"
+                                id="pgp_verificationResult">
+                            </div>
+                            <button id="pgp_sign_btn">Signature File</button>
+                            <button id="pgp_verify_btn">Verify Sign</button>
+                            <button id="pgp_sign_reset">Reset</button><br><br>
+                        </details>
                     </div>
                 </details>
-                <details class="child" id="encrypt_manage">
-                    <summary>Encryption and Decryption</summary>
+                <details class="child" id="async_encrypt_manage">
+                    <summary>Asymmetric Encryption / Decryption</summary>
                     <div style="position: relative;">
                         <details>
                             <summary style="color: #555;">Help</summary>
-                            <p style="line-height: 1.8rem;color:#888;font-size: small;">Encrypt the file with the public
-                                key and decrypt the file with the private key.
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">Encrypt the file with the public key and decrypt the file with the private key. If you want to generate a password-protected key, please enter the password at "Private Key Protection Password:" above.
                             </p>
                             <p style="color: rgb(238, 89, 89);font-size: small;">
 
                             </p>
                         </details>
                         <hr />
-                        Select the encrypted file:&nbsp;
-                        <input type="file" id="encrypt_file"
+                        <details class="sunzi">
+                            <summary style="color: red;">Method 1: Use cryptocurrency keys</summary>
+                            <br>Select the encrypted file:&nbsp;
+                            <input type="file" id="encrypt_file"
+                                style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                            Private Key:&nbsp;<input id="encrypt_private_key"
+                                placeholder="A string in hexadecimal format (i.e. hex encoding) should have the prefix 0x removed."
+                                style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password"><br><br>Private Key Protection Password:&nbsp;<span><input
+                                    id="encrypt_private_password"
+                                    style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="images/closeeye.png" id="encrypt_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            Public Key:&nbsp;<input id="encrypt_publicKey" placeholder="32-byte compressed public key"
+                                style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
+                            <button id="encrypt_btn">Encrypt</button>
+                            <button id="decrypt_btn">Decrypt</button>
+                            <button id="encrypt_reset">Reset</button><br><br>
+                            Result:&nbsp;<br>
+                            <div id="encrypt_result"
+                                style="width: 50rem;border: 1px solid #dddddd;padding: 4px;color: gray;"></div>
+                        </details><br>
+                        <details class="sunzi">
+                            <summary style="color: red;">Method 2: Use PGP keys</summary>
+                            <br>Select the encrypted file:&nbsp;
+                            <input type="file" id="pgp_encrypt_file"
+                                style="outline-style: none;border-bottom: 1px solid black;"><br><br>
+                            PGP Private Key:&nbsp;<textarea id="pgp_private_key" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----"></textarea><br>
+                            Private key protection password:&nbsp;<span><input id="pgp_private_password"
+                                    style="width: 200px;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                    type="password"><img src="images/closeeye.png" id="pgp_encrypt_password_eye"
+                                    style="width: 16px;"></span><br><br>
+                            PGP Public Key:&nbsp;<textarea id="pgp_public_key" style="width: 700px; height: 140px;"
+                                placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;...&#10;-----END PGP PUBLIC KEY BLOCK-----"></textarea>
+                            <br><br>
+                            Generate a new key?&nbsp;<input type="checkbox" id="pgp_checkbox">
+                            <div style="padding: 10px;width: 760px;border: 1px solid #CCC;margin: 4px 0px;background-color: #FAFAFA; display:none;"
+                                id="pgp_generate_div">
+                                Your Name:&nbsp;<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="name"><br>
+                                Your Email:&nbsp;<input
+                                    style="border-style: none; border-bottom: 1px solid black; color: green; width: 200px;"
+                                    name="email"><br>
+                                Type of Key:&nbsp;<span style="padding: 0px 3rem;border-bottom: 1px solid #999;">
+                                    <label style="margin-right: 2rem;">RSA <input type="radio" name="pgp_algorithm"
+                                            value="rsa"></label>
+                                    <label style="margin-right: 2rem;">ECC <input type="radio" name="pgp_algorithm"
+                                            checked="" value="ecc"></label>
+                                    <label style="margin-right: 2rem;">DSA <input type="radio" name="pgp_algorithm"
+                                            value="dsa"></label>
+                                </span><br>
+                                Key validity period:&nbsp;<input
+                                    style="border-style: none;border-bottom: 1px solid black;color: green;width: 40px;text-align: right;"
+                                    name="expire" value="0"><span style="color:gray;">(Unit 'day', 0 means permanently
+                                    valid)</span><br>
+                                <p style="color: red; font-size:small;"> If you want to generate a password-protected key, please enter the password at "Private Key Protection Password:".</p>
+                                <p style="text-align: center; margin-bottom: 0px;"><button
+                                        id="pgp_generate_btn">Generate Key</button></p>
+                            </div><br>
+                            <button id="pgp_encrypt_btn">Encrypt File</button>
+                            <button id="pgp_decrypt_btn">Decrypt File</button>
+                            <button id="pgp_encrypt_reset">Reset</button><br><br>
+                        </details>
+                    </div>
+                </details>
+                <details class="child" id="sync_encrypt_manage">
+                    <summary>Symmetric Encryption / Decryption</summary>
+                    <div style="position: relative;">
+                        <details>
+                            <summary style="color: #555;">Help</summary>
+                            <p style="line-height: 1.8rem;color:#888;font-size: small;">
+                                This implements symmetric encryption and decryption based on the OpenPGP standard,
+                                compatible with open source tools such as GnuPG and gpg4win.
+                            </p>
+                        </details>
+                        <hr />
+                        Select the file:
+                        <input type="file" id="symmetric_file"
                             style="outline-style: none;border-bottom: 1px solid black;"><br><br>
-                        Private Key:&nbsp;<input id="encrypt_private_key"
-                            placeholder="A string in hexadecimal format (i.e. hex encoding) should have the prefix 0x removed."
-                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                            type="password"><br><br>Private key protection password:&nbsp;<span><input
-                                id="encrypt_private_password"
-                                style="width: 8rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
-                                type="password"><img src="../images/closeeye.png" id="encrypt_password_eye"
+                        Password:&nbsp;<span><input id="symmetric_password"
+                                style="width: 20rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"
+                                type="password"><img src="images/closeeye.png" id="symmetric_password_eye"
                                 style="width: 16px;"></span><br><br>
-                        Public Key:&nbsp;<input id="encrypt_publicKey" placeholder="32-byte compressed public key"
-                            style="width: 45rem;border: none; border-bottom: 1px solid #888; color: green;outline-style: none;"><br><br>
-                        <button id="encrypt_btn">Encryption</button>
-                        <button id="decrypt_btn">Decryption</button>
-                        <button id="encrypt_reset">Reset</button><br><br>
-                        Result:&nbsp;<br>
-                        <div id="encrypt_result"
-                            style="width: 50rem;border: 1px solid #dddddd;padding: 4px;color: gray;"></div>
+                        <button id="symmetric_encrypt_btn">Encrypt</button>
+                        <button id="symmetric_decrypt_btn">Decrypt</button>
+                        <button id="symmetric_reset">Reset</button><br><br>
                     </div>
                 </details>
                 <details class="child" id="encode_manage">
@@ -1458,7 +1655,9 @@
                     saying.</p>
                 <p class="help">
                     In practice, we don’t generate private keys by tossing coins but use computer programs instead.
-                    That’s all for private keys. If you want to learn more, check out my new book <em>The Definitive Guide to Cryptocurrency Secure Trading in Practice</em> available for download on my personal website.
+                    That’s all for private keys. If you want to learn more, check out my new book <em>The Definitive
+                        Guide to Cryptocurrency Secure Trading in Practice</em> available for download on my personal
+                    website.
                 </p>
                 <br>
                 <p class="help" style="font-weight: 700; font-size: large">2.2 Address</p>
@@ -1585,13 +1784,16 @@
                     large transactions (>$10M), use dedicated wallets and encrypt private keys. Sign transactions with
                     encrypted keys and temporary passwords.
                 </p>
-                <br><br><hr>
-                <p class="help" style="text-align: right; color: gray;">Good luck! If in doubt, feel free to send us an email, our email address is
+                <br><br>
+                <hr>
+                <p class="help" style="text-align: right; color: gray;">Good luck! If in doubt, feel free to send us an
+                    email, our email address is
                     admin@walletoffline.com</p>
             </div>
         </main>
-        <footer><a href="https://github.com/veryopen/walletoffline" target="_blank" style="color: black;text-decoration: none;">On<img src="images/github.png">Github</a>
-</footer>
+        <footer><a href="https://github.com/veryopen/walletoffline" target="_blank"
+                style="color: black;text-decoration: none;">On<img src="images/github.png">Github</a>
+        </footer>
     </div>
     <dialog id="wallet_dialog">
         <h3 style="text-align: center;">My Dialog</h3>
@@ -1640,11 +1842,8 @@
     <dialog
         style="z-index: 9999;text-align: center;border-radius: 50%;border-style: none;position:relative;height: 120px;width:120px;box-shadow: 0px 3px 8px 0px rgba(0, 0, 0, 0.3);overflow: clip;"
         id="waiting">
-        <img src="images/doing.gif" style="width: 100px;position: absolute;z-index: 100;left: 36%;top: 30px;">
-        <div
-            style="position: absolute;background: repeating-linear-gradient(-45deg,#666666, #666666 4%,#EEEEEE 4%, #EEEEEE 8%);width: 100%;height: 2rem;top: 60px;left: 0px;">
-        </div>
-        <p style="font-size: small;margin-top: 74px;">Please wait, working...</p>
+        <img src="images/doing.gif" style="width: 200px;position: absolute;z-index: 100;left: 0px;top: 10px;">
+        <p style="font-size: small;margin-top: 86px;">Please wait, working...</p>
     </dialog>
 
     <div id="help"

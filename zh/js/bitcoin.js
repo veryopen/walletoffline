@@ -1,19 +1,19 @@
 window.addEventListener("load", (evt) => {
     document.getElementById('select_language').addEventListener('change', (evt) => {
         let pathname = '';
-        if(evt.target.value == "en"){
+        if (evt.target.value == "en") {
             let path = location.pathname.split('/');
             path.pop();
             path.pop();
             pathname = path.join('/');
-        }else{
+        } else {
             let path = location.pathname.split('/');
             path.pop();
             path.push('zh');
             pathname = path.join('/');
         }
         localStorage.setItem('lang', evt.target.value);
-        window.open( location.origin + pathname + '/index.html', '_self');
+        window.open(location.origin + pathname + '/index.html', '_self');
     })
 
     document.getElementById('choose_net').addEventListener('click', (ev) => {
@@ -193,21 +193,28 @@ window.addEventListener("load", (evt) => {
             } */
         });
     });
+
     document.querySelectorAll(".child").forEach(e => {
         e.addEventListener('toggle', (ev) => {
             if (ev.target.open) {
-                //ev.target.querySelector('div').style.maxHeight = "33rem";
                 document.querySelectorAll(".child").forEach((d) => {
                     if (ev.target != d) {
                         d.removeAttribute('open');
                     }
                 });
-                if (navigator.onLine) {
-                    //alert("请先让浏览器脱机工作（按Alt，左上角“文件”》“脱机工作”）！");
-                }
-            } /* else {
-                ev.target.querySelector('div').style.maxHeight = "0rem";
-            } */
+            }
+        });
+    });
+
+    document.querySelectorAll(".sunzi").forEach(e => {
+        e.addEventListener('toggle', (ev) => {
+            if (ev.target.open) {
+                document.querySelectorAll(".sunzi").forEach((d) => {
+                    if (ev.target != d) {
+                        d.removeAttribute('open');
+                    }
+                });
+            }
         });
     });
 
@@ -233,7 +240,7 @@ window.addEventListener("load", (evt) => {
         document.getElementById('mnemonic').value = '';
         document.getElementById('seed_password').value = '';
         document.getElementById('path').value = "0'/0/0";
-//        document.getElementById('address_index').value = '0';
+        //        document.getElementById('address_index').value = '0';
         document.getElementById('view_wallet').innerHTML = '';
         document.getElementById('prompt').style.visibility = 'hidden';
         document.getElementById('seed').value = '';
@@ -260,7 +267,7 @@ window.addEventListener("load", (evt) => {
     document.getElementById('select_cryptocurrency').addEventListener('change', (evt) => {
         cryptoType = parseInt(evt.target.value);
     })
-    
+
     document.getElementById('encrypt').addEventListener('click', (ev) => {
         let decryptedKey = document.getElementById("decryptKey").value.trim();
         if (decryptedKey == '') {
@@ -436,7 +443,27 @@ window.addEventListener("load", (evt) => {
         document.getElementById('view_more').innerHTML = `　　　　种子：${hd_more.seed}<br>　根扩展私钥：${hd_more.rood_ext_key}<br>账户扩展私钥：${hd_more.accPri}<br>账户扩展公钥：${hd_more.accPub}`;
     })
 
-    document.getElementById('fromWif_button').addEventListener('click', (et) => {
+    document.getElementById('fromWif_password_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('fromWif_password').setAttribute('type', 'text');
+    })
+
+    document.getElementById('fromWif_password_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('fromWif_password').setAttribute('type', 'password');
+    })
+
+    document.getElementById('fromWif_privateKey_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('fromWif_wif').setAttribute('type', 'text');
+    })
+
+    document.getElementById('fromWif_privateKey_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('fromWif_wif').setAttribute('type', 'password');
+    })
+
+    document.getElementById('fromWif_ok_btn').addEventListener('click', (et) => {
         let pri_wif = document.getElementById('fromWif_wif').value.trim();
         if (pri_wif == '') {
             alert("请先输入私钥");
@@ -448,6 +475,33 @@ window.addEventListener("load", (evt) => {
         document.getElementById('private_td2').innerHTML = '';
         document.getElementById('public_td1').innerHTML = '';
         document.getElementById('public_td2').innerHTML = '';
+
+        if (pri_wif.slice(0, 2) == '6P') {
+            let password = document.getElementById('fromWif_password').value.trim();
+            if (password == '') {
+                alert('私钥已经加密，但是没有提供私钥的保护密码！');
+                pri_wif = null;
+                return;
+            } else {//私钥被密码保护，需要解密
+                try {
+                    openModal('请稍后，正在解密并签名…');
+                    if (!bip38.verify(pri_wif)) {
+                        throw new Error('不是一个合法的加密私钥！');
+                    }
+                    let N = parseInt(document.getElementById('N_id').value.trim());
+                    let r = parseInt(document.getElementById('r_id').value.trim());
+                    let p = parseInt(document.getElementById('p_id').value.trim());
+                    let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
+                    pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    closeModal();
+                } catch (error) {
+                    pri_wif = null;
+                    closeModal();
+                    alert(error);
+                    return;
+                };
+            }
+        }
 
         //        let ECPair = ecpair.ECPairFactory(bitcoinerlabsecp256k1);
         try {
@@ -507,6 +561,17 @@ window.addEventListener("load", (evt) => {
         }
     });
 
+    document.getElementById('fromWif_reset_btn').addEventListener('click', (ev) => {
+        document.getElementById('address_td1').innerHTML = '';
+        document.getElementById('address_td2').innerHTML = '';
+        document.getElementById('private_td1').innerHTML = '';
+        document.getElementById('private_td2').innerHTML = '';
+        document.getElementById('public_td1').innerHTML = '';
+        document.getElementById('public_td2').innerHTML = '';
+        document.getElementById('fromWif_wif').value = '';
+        document.getElementById('fromWif_password').value = '';
+    })
+
     document.getElementById('wallet_balance_btn').addEventListener('click', (et) => {
         let wallet_address = document.getElementById('wallet_address').value.trim();
         if (wallet_address == '') {
@@ -539,6 +604,115 @@ window.addEventListener("load", (evt) => {
         } else {
             view_tx(wallet_address);
         }
+    });
+
+    document.getElementById('bitcoin_segment_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('bitcoin_segment_password').setAttribute('type', 'text');
+        document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'text');
+    })
+    document.getElementById('bitcoin_segment_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('bitcoin_segment_password').setAttribute('type', 'password');
+        document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'password');
+    })
+
+    document.getElementById('bitcoin_signature_btn').addEventListener('click', (ev) => {
+        const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
+        if (segmentText == '') {
+            alert('被签名的文本不能为空！');
+            return;
+        }
+        let pri_wif = document.getElementById('bitcoin_segment_privateKey').value.trim();
+        if (pri_wif) {
+            if (pri_wif.slice(0, 2) == '6P') {
+                let password = document.getElementById('bitcoin_segment_password').value;
+                if (password == '') {
+                    pri_wif = null;
+                    alert('私钥已经加密，但是没有提供私钥的保护密码！');
+                    return;
+                } else {//私钥被密码保护，需要解密
+                    try {
+                        if (!bip38.verify(pri_wif)) {
+                            throw new Error('不是一个合法的加密私钥！');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
+                        pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    } catch (error) {
+                        pri_wif = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+
+            let keyPair;
+            try {
+                keyPair = ECPair.fromWIF(pri_wif, network);
+            } catch (err) {
+                alert(err);
+                return;
+            }
+            const types = document.getElementsByName('addressType');
+            let addressType = 'p2pkh';
+            for (const e of types) {
+                if (e.checked) {
+                    addressType = e.value;
+                    break;
+                }
+            }
+            let signature;
+            if (addressType == 'p2pkh') {
+                signature = bitcoinjsMessage.sign(
+                    segmentText,
+                    keyPair.privateKey,
+                    keyPair.compressed
+                );
+            } else {
+                signature = bitcoinjsMessage.sign(
+                    segmentText,
+                    keyPair.privateKey,
+                    keyPair.compressed,
+                    { segwitType: addressType }
+                );
+            }
+            const signatureBase64 = signature.toString('base64');
+            document.getElementById('bitcoin_segment_result').value = signatureBase64;
+        }
+
+    })
+
+    document.getElementById('bitcoin_veify_btn').addEventListener('click', (ev) => {
+        const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
+        const signature = document.getElementById('bitcoin_segment_result').value.trim();
+        const p2wpkhAddress = document.getElementById('bitcoin_segment_address').value.trim();
+        if (!segmentText || !signature || !p2wpkhAddress) {
+            alert("被签名的文本、签名和地址不能缺少！");
+            return;
+        }
+        let isValid;
+        try {
+            isValid = bitcoinjsMessage.verify(segmentText, p2wpkhAddress, signature);
+        } catch (err) {
+            const decodedP2wpkh = bitcoin.address.fromBech32(p2wpkhAddress);
+            const p2pkhAddress = bitcoin.address.toBase58Check(decodedP2wpkh.data, network.pubKeyHash);
+            isValid = bitcoinjsMessage.verify(segmentText, p2pkhAddress, signature);
+        }
+        ev.target.parentNode.querySelector('#bitcoin_segment_verify_result').style.visibility = 'visible';
+        ev.target.parentNode.querySelector('#bitcoin_segment_verify_result').setAttribute('src', isValid ? 'images/sign_ok.png' : 'images/sign_failed.png');
+
+    });
+
+    document.getElementById('bitcoin_reset_btn').addEventListener('click',(ev)=>{
+        document.getElementById('bitcoin_segment_verify_result').style.visibility = 'hidden';
+        document.getElementById('bitcoin_segment_text').value = '';
+        document.getElementById('bitcoin_segment_result').value = '';
+        document.getElementById('bitcoin_segment_address').value = '';
+        document.getElementById('bitcoin_segment_password').value = '';
+        document.getElementById('bitcoin_segment_privateKey').value = '';
     });
 
     document.getElementById('recover_wallet').addEventListener('click', (e) => {
@@ -920,7 +1094,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
 
     document.getElementById('manual_txId').addEventListener('blur', (ev) => {
         let txId = ev.target.value.trim();
-        if(txId.length != 64){
+        if (txId.length != 64) {
             alert("必须位64位的十六进制字符串！");
             return;
         }

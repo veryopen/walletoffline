@@ -70,7 +70,7 @@ var litecoin_rate = 200;
 var litecoin_fee_dollars = 0.5;//一笔交易费0.5美元
 var litecoin_fee = 2050;//交易手续费
 
-//索尔币全局变量
+//索拉纳全局变量
 var solcoin_rate = 150;
 var solcoin_fee_dollars = 0.01;//一笔交易费0.01美元
 var solcoin_fee = 2000;//交易手续费

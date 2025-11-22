@@ -16,39 +16,58 @@ window.addEventListener("load", (evt) => {
         window.open(location.origin + pathname + '/index.html', '_self');
     })
 
-    document.getElementById('choose_net').addEventListener('click', (ev) => {
-        isTestNet_bitcoin = true;
-        switch (parseInt(document.getElementById('bitcoin_gloabal_pars').querySelector('select').value)) {
-            case 0: network = bitcoin.networks.bitcoin;
-                isTestNet_bitcoin = false;
+    document.getElementById('bitcoin_configure_network').addEventListener('change', (ev) => {
+        bitcoin_isTestNet = true;
+        let t = document.getElementById('test_or_main');
+        t.value = "1";
+        switch (parseInt(ev.target.value)) {
+            case 0: bitcoin_network = bitcoin.networks.bitcoin;
+                bitcoin_isTestNet = false;
+                t.value = "0";
                 break;
-            case 1: network = bitcoin.networks.testnet;
+            case 1: bitcoin_network = bitcoin.networks.testnet;
                 break;
-            case 2: network = bitcoin.networks.regtest;
+            case 2: bitcoin_network = bitcoin.networks.regtest;
                 break;
             default: break;
         }
-        wallets.path = `m/84'/${isTestNet_bitcoin ? '1' : '0'}${wallets.path.slice(7)}`;
-        switch (document.getElementById('grobal_pars_language').value) {
+        wallets.path = `m/84'/${bitcoin_isTestNet ? '1' : '0'}${wallets.path.slice(7)}`;
+    })
+
+    document.getElementById('bitcoin_configure_rate').addEventListener('blur', (ev) => {
+        bitcoin_rate = parseFloat(ev.target.value.trim());
+    });
+
+    document.getElementById('bitcoin_configure_fee').addEventListener('blur', (ev) => {
+        bitcoin_fee_dollars = parseFloat(ev.target.value.trim());
+        bitcoin_fee_satoshi = Math.round(bitcoin_fee_dollars / bitcoin_rate * 100000000);
+        //        document.getElementById('bitcoin_fee_satoshi').innerText = bitcoin_fee_satoshi;
+        let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
+        let totalAmount = document.getElementById('tx_amount').innerText.replace(/,/g, '');
+        let tx_fee = parseInt(totalAmount) - parseInt(toOut);
+        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
+        document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
+        document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
+        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
+    });
+
+    document.getElementById('bitcoin_configure_language').addEventListener('change', (ev) => {
+        switch (ev.target.value) {
             case 'cn':
                 bitcoin_language = bip39.wordlists.chinese_simplified;
-                ethereum_language = wordlistsExtra.LangZh.wordlist("cn");
+                //                bitcoin_language = solcoin_language = bip39.wordlists.chinese_simplified;
                 break;
             case 'tw':
                 bitcoin_language = bip39.wordlists.chinese_traditional;
-                ethereum_language = wordlistsExtra.LangZh.wordlist("tw");
                 break;
             case 'ja':
                 bitcoin_language = bip39.wordlists.japanese;
-                ethereum_language = wordlistsExtra.LangJa.wordlist("ja");
                 break;
             case 'es':
                 bitcoin_language = bip39.wordlists.spanish;
-                ethereum_language = wordlistsExtra.LangEs.wordlist("es");
                 break;
             case 'fr':
                 bitcoin_language = bip39.wordlists.french;
-                ethereum_language = wordlistsExtra.LangFr.wordlist("fr");
                 break;
             case 'it':
                 bitcoin_language = bip39.wordlists.italian;
@@ -67,26 +86,39 @@ window.addEventListener("load", (evt) => {
                 ethereum_language = wordlistsExtra.LangCz.wordlist("cz");
                 break;
             default:
-                bitcoin_language = bip39.wordlists.english;
+                bitcoin_languagee = bip39.wordlists.english;
                 ethereum_language = ethers.wordlists.en;
                 break;
         }
+    });
+    /*
+        litecoin_rate = parseFloat(document.getElementById('litecoin_gloabal_pars').querySelector('input').value.trim());
+        litecoin_fee = Math.ceil(100000000 / litecoin_rate) * litecoin_fee_dollars;
+        document.getElementById('litecoin_fee').innerText = litecoin_fee;
+        document.getElementById('litecoin_fee_dollars').innerText = litecoin_fee_dollars;
 
-        bitcoin_rate = parseFloat(document.getElementById('bitcoin_gloabal_pars').querySelector('input').value.trim());
-        fee = Math.ceil(100000000 / bitcoin_rate) * fee_dollars;
-        document.getElementById('fee').innerText = fee;
-        document.getElementById('fee_dollars').innerText = fee_dollars;
+        solcoin_rate = parseFloat(document.getElementById('solcoin_gloabal_pars').querySelector('input').value.trim());
+        solcoin_fee = Math.ceil(solanaWeb3.LAMPORTS_PER_SOL / solcoin_rate) * solcoin_fee_dollars;
+
         document.getElementById('cover_crypto').style.visibility = 'visible';
-        isTestNet_ethereum = document.getElementById('ethereum_gloabal_pars').querySelector('select').value == 0 ? false : true;
+        ethereum_isTestNet = document.getElementById('ethereum_gloabal_pars').querySelector('select').value == 0 ? false : true;
+        solcoin_network = document.getElementById('solcoin_gloabal_pars').querySelector('select').value;
+        isTestNet_solcoin = solcoin_network == 'mainnet-beta' ? false : true;
+        litecoin_network = document.getElementById('litecoin_gloabal_pars').querySelector('select').value == 0 ? litecoinMainnet : litecoinTestnet;
         ethereum_rate = parseFloat(document.getElementById('ethereum_gloabal_pars').querySelector('input').value.trim());
+        solcoin_rate = parseFloat(document.getElementById('solcoin_gloabal_pars').querySelector('input').value.trim());
+        litecoin_rate = parseFloat(document.getElementById('litecoin_gloabal_pars').querySelector('input').value.trim());
         document.getElementById('configure_global_parameters').style.visibility = "hidden";
+        document.getElementById('test_or_main').value = bitcoin_isTestNet ? '1' : '0';
 
+        document.getElementById('litecoin_new_path').value = `m/84'/${litecoin_network.wif == 0xb0 ? 2 : 1}'/0'/0/0`;
+        document.getElementById('litecoin_new_path').nextSibling.innerHTML = `　（说明：路径m/84'/${litecoin_network.wif == 0xb0 ? 2 : 1}'/i'/0/j表示第i+1个账户里的第j+1个钱包，i,j=0、1、2、…）`;
 
-        let txHash = isTestNet_bitcoin ? "ffb32fbe3b0e260e38e82025d7dcf72a24feb3da455445015aaf8b8f9c9da68f" : "c6e81c4a315d7eed40cb32b2558f4b142d37959f7e8eb3eb5c43fdf2931cca42";
-        getTxDetail(txHash, isTestNet_bitcoin, true).then((rawHex) => {
+        let txHash = bitcoin_isTestNet ? "ffb32fbe3b0e260e38e82025d7dcf72a24feb3da455445015aaf8b8f9c9da68f" : "c6e81c4a315d7eed40cb32b2558f4b142d37959f7e8eb3eb5c43fdf2931cca42";
+        getTxDetail(txHash, bitcoin_isTestNet, true).then((rawHex) => {
             if (rawHex.length > 20) {
-                let address = isTestNet_bitcoin ? "tb1qng6f35spexs5nr80enz3a76kuz5s9m20um22xx" : "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-                getUtxo(address, isTestNet_bitcoin).then((ret) => {
+                let address = bitcoin_isTestNet ? "tb1qng6f35spexs5nr80enz3a76kuz5s9m20um22xx" : "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+                getUtxo(address, bitcoin_isTestNet).then((ret) => {
                     canFetchRawTX = true;
                 })
             }
@@ -94,7 +126,7 @@ window.addEventListener("load", (evt) => {
             canFetchRawTX = false;
         });
     })
-
+*/
     // document.querySelectorAll(".path").forEach(e => {
     //     e.addEventListener('change', ev => {
     //         wallets.path = "m/84'/" + document.getElementById('coin_type').value + "'/" + document.getElementById('account').value;
@@ -102,25 +134,46 @@ window.addEventListener("load", (evt) => {
     //         document.getElementById('hd_path').innerText = "HD钱包路劲：" + wallets.path;
     //     });
     // });
-    document.getElementById('bitcoin_new_language').addEventListener('change', (evt) => {
-        switch (evt.target.value) {
-            case 'cn': bitcoin_language = bip39.wordlists.chinese_simplified; break;
-            case 'tw': bitcoin_language = bip39.wordlists.chinese_traditional; break;
-            case 'ja': bitcoin_language = bip39.wordlists.japanese; break;
-            case 'es': bitcoin_language = bip39.wordlists.spanish; break;
-            case 'fr': bitcoin_language = bip39.wordlists.french; break;
-            case 'it': bitcoin_language = bip39.wordlists.italian; break;
-            case 'ko': bitcoin_language = bip39.wordlists.korean; break;
-            case 'pt': bitcoin_language = bip39.wordlists.portuguese; break;
-            case 'cz': bitcoin_language = bip39.wordlists.czech; break;
-            default: bitcoin_language = bip39.wordlists.english; break;
-        }
-    })
+    /*
+        document.getElementById('bitcoin_new_language').addEventListener('change', (evt) => {
+            switch (evt.target.value) {
+                case 'cn': bitcoin_language = bip39.wordlists.chinese_simplified; break;
+                case 'tw': bitcoin_language = bip39.wordlists.chinese_traditional; break;
+                case 'ja': bitcoin_language = bip39.wordlists.japanese; break;
+                case 'es': bitcoin_language = bip39.wordlists.spanish; break;
+                case 'fr': bitcoin_language = bip39.wordlists.french; break;
+                case 'it': bitcoin_language = bip39.wordlists.italian; break;
+                case 'ko': bitcoin_language = bip39.wordlists.korean; break;
+                case 'pt': bitcoin_language = bip39.wordlists.portuguese; break;
+                case 'cz': bitcoin_language = bip39.wordlists.czech; break;
+                default: bitcoin_language = bip39.wordlists.english; break;
+            }
+        })
+    */
 
     document.getElementById('path').addEventListener('blur', (ev) => {
-        wallets.path = "m/84'/0'/" + ev.target.value.trim();
+        let path1 = ev.target.value.trim();
+        const reg_path = /([0-9]+)'\/([01])\/([0-9]+)$/;
+        if (!reg_path.test(path1)) {
+            alert("钱包路径不对，格式是“i'/0或者1/j”，i,j取值范围[0,2147483647]");
+            return;
+        }
+        let paths = wallets.path.split('/');
+        paths.splice(3, 10, path1);
+        wallets.path = paths.join('/');
         //        wallets.path = wallets.path + "'/0/" + document.getElementById('address_index').value.trim();
         //        document.getElementById('hd_path').innerText = "HD钱包路劲：" + wallets.path;
+    });
+
+    document.getElementById('purpose').addEventListener('blur', (ev) => {
+        let purpose = ev.target.value.trim();
+        if (!['32', '44', '49', '84', '141'].includes(purpose)) {
+            alert('类型必须是32、44、49、84、141之一！');
+            return;
+        }
+        let paths = wallets.path.split('/');
+        paths.splice(1, 1, purpose + "'");
+        wallets.path = paths.join('/');
     });
 
     document.getElementById('customize_mnemonic_length').addEventListener('change', (evt) => {
@@ -138,6 +191,7 @@ window.addEventListener("load", (evt) => {
             <label class="mnemonic_customize_input">11.<input id="mnemonic_11" class="mnemonic_customize"></label>
         `;
         let count = parseInt(evt.target.value);
+        document.getElementById('customize_binary').setAttribute('placeholder', `请输入${count * 32 / 3}位二进制（可以不输入）……`);
         let i = 12;
         for (; i < count; i++) {
             content = content + `<label class="mnemonic_customize_input">${i}.<input id="mnemonic_${i}" class="mnemonic_customize"></label>`;
@@ -202,6 +256,9 @@ window.addEventListener("load", (evt) => {
                         d.removeAttribute('open');
                     }
                 });
+                //                ev.target.querySelector(".wallet1").style.cssText = "height: 700px; padding: 3rem;";
+            } else {
+                //                ev.target.querySelector(".wallet1").style.cssText = "height:0px; padding: 0px;";
             }
         });
     });
@@ -212,8 +269,10 @@ window.addEventListener("load", (evt) => {
                 document.querySelectorAll(".sunzi").forEach((d) => {
                     if (ev.target != d) {
                         d.removeAttribute('open');
+                        d.querySelector('summary').style.borderBottom = '';
                     }
                 });
+                ev.target.querySelector('summary').style.borderBottom = '1px solid';
             }
         });
     });
@@ -221,11 +280,12 @@ window.addEventListener("load", (evt) => {
     document.getElementById('bitcoin_password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('seed_password').setAttribute('type', 'text');
-    })
+    });
+
     document.getElementById('bitcoin_password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('seed_password').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('new_wallet').addEventListener('click', (ev) => {
         wallets.mnemonic = bip84.generateMnemonic(parseInt(document.getElementById('mnemonic_length').value) * 32 / 3, null, bitcoin_language);;
@@ -240,6 +300,7 @@ window.addEventListener("load", (evt) => {
         document.getElementById('mnemonic').value = '';
         document.getElementById('seed_password').value = '';
         document.getElementById('path').value = "0'/0/0";
+        document.getElementById('purpose').value = '84';
         //        document.getElementById('address_index').value = '0';
         document.getElementById('view_wallet').innerHTML = '';
         document.getElementById('prompt').style.visibility = 'hidden';
@@ -250,7 +311,7 @@ window.addEventListener("load", (evt) => {
             mnemonic: '',
             mnemonic_length: 24,
             seed_password: '',
-            path: `m/84'/${isTestNet_bitcoin ? "1" : "0"}'/0'/0/0`,
+            path: `m/84'/${bitcoin_isTestNet ? "1" : "0"}'/0'/0/0`,
         };
         hd_more = {
             seed: '',
@@ -266,11 +327,23 @@ window.addEventListener("load", (evt) => {
 
     document.getElementById('select_cryptocurrency').addEventListener('change', (evt) => {
         cryptoType = parseInt(evt.target.value);
-    })
+        let p = document.getElementById('decryptKey');
+        switch (cryptoType) {
+            case 0:
+            case 2:
+            case 3:
+                p.setAttribute('placeholder', "输入十六进制私钥（省略前缀0x）或者WIF格式私钥…");
+                break;
+            case 60:
+            case 501:
+                p.setAttribute('placeholder', "输入以0x为前缀的十六进制私钥…");
+                break;
+        }
+    });
 
-    document.getElementById('encrypt').addEventListener('click', (ev) => {
-        let decryptedKey = document.getElementById("decryptKey").value.trim();
-        if (decryptedKey == '') {
+    document.getElementById('encrypt').addEventListener('click', async (ev) => {
+        let decryptKey = document.getElementById("decryptKey").value.trim();
+        if (decryptKey == '') {
             alert('请输入明文密钥！');
             return;
         }
@@ -281,20 +354,37 @@ window.addEventListener("load", (evt) => {
         }
         ev.target.setAttribute("disabled", "");
         document.getElementById('encryptKey').value = '正在努力加密，请稍侯……';
-        openModal('请稍后，正在加密…');
+        await openModal('请稍后，正在加密…');
         //        let isCompressed = document.querySelector('input[name="isCompressed"]').getAttribute('checked') == '' ? true : false;
         let N = parseInt(document.getElementById('N_id').value.trim());
         let r = parseInt(document.getElementById('r_id').value.trim());
         let p = parseInt(document.getElementById('p_id').value.trim());
         try {
             let compressed = true;
-            let privateKey
-            if (cryptoType == 0) {//比特币
-                let decoded = wif.decode(decryptedKey, isTestNet_bitcoin ? 239 : 128);
-                compressed = decoded.compressed;
-                privateKey = decoded.privateKey;
-            } else {//以太币
-                privateKey = Uint8Array.from(Buffer.Buffer.from(decryptedKey.slice(2), 'hex'));
+            let privateKey;
+            if (decryptKey.slice(0, 2) == '0x' && decryptKey.length == 66) {
+                privateKey = Buffer.Buffer.from(decryptKey.slice(2), 'hex');
+            } else {
+                switch (cryptoType) {
+                    case 0://比特币
+                        let decoded = wif.decode(decryptKey, bitcoin_isTestNet ? 239 : 128);
+                        compressed = decoded.compressed;
+                        privateKey = decoded.privateKey;
+                        break;
+                    case 60://以太币
+                        privateKey = Uint8Array.from(Buffer.Buffer.from(decryptKey.slice(2), 'hex'));
+                        break;
+                    case 2://莱特币
+                        privateKey = ECPair.fromWIF(decryptKey, litecoin_network).privateKey;
+                        break;
+                    case 3://狗狗币
+                        privateKey = ECPair.fromWIF(decryptKey, dogecoin_network).privateKey;
+                        break;
+                    case 501://索拉纳
+                        break;
+                    default:
+                        break;
+                }
             }
             bip38.encryptAsync(privateKey, compressed, passwd, null, { N: N, r: r, p: p }).then((encryptedKey) => {
                 document.getElementById('encryptKey').value = encryptedKey;
@@ -314,10 +404,10 @@ window.addEventListener("load", (evt) => {
         }
     });
 
-    document.getElementById('decrypt').addEventListener('click', (ev) => {
+    document.getElementById('decrypt').addEventListener('click', async (ev) => {
         let encryptedKey = document.getElementById("encryptKey").value.trim();
         if (encryptKey == '') {
-            alert('请输入密文密钥！');
+            alert('请输入密文私钥！');
             return;
         }
         let passwd = document.getElementById("password").value.trim();
@@ -329,7 +419,7 @@ window.addEventListener("load", (evt) => {
             alert('不是一个合法的加密私钥！');
             return;
         }
-        openModal('请稍后，正在解密…');
+        await openModal('请稍后，正在解密…');
         ev.target.setAttribute("disabled", "");
         //        let isCompressed = document.querySelector('input[name="isCompressed"]').getAttribute('checked') == '' ? true : false;
         let N = parseInt(document.getElementById('N_id').value.trim());
@@ -338,14 +428,26 @@ window.addEventListener("load", (evt) => {
         document.getElementById('decryptKey').value = '正在努力解密，请稍侯……';
         document.getElementById("format").innerText = '';
         bip38.decryptAsync(encryptedKey, passwd, null, { N: N, r: r, p: p }).then((decryptKey) => {
-            if (cryptoType == 0) {//比特币
-                let pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
-                const privateKey = wif.decode(pri_wif, isTestNet_bitcoin ? 239 : 128).privateKey;
-                let pri_hex = privateKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-                document.getElementById('decryptKey').value = 'WIF格式：' + pri_wif + '\n\n\n原始格式（hex):\n' + pri_hex;
-                document.getElementById("format").innerText = decryptKey.compressed ? "这是一个压缩格式的私钥" : "这是一个非压缩格式的私钥";
-            } else {//以太币
-                document.getElementById('decryptKey').value = `0x${Buffer.Buffer.from(decryptKey.privateKey).toString('hex')}`;
+            switch (cryptoType) {
+                case 0: //比特币（bitcoin）
+                    let pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    const privateKey = wif.decode(pri_wif, bitcoin_isTestNet ? 239 : 128).privateKey;
+                    let pri_hex = privateKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+                    document.getElementById('decryptKey').value = 'WIF格式：' + pri_wif + '\n\n\n原始格式（hex):\n' + pri_hex;
+                    document.getElementById("format").innerText = decryptKey.compressed ? "这是一个压缩格式的私钥" : "这是一个非压缩格式的私钥";
+                    break;
+                case 60://以太币（ethereum）
+                case 501://索尔币（solana）
+                    document.getElementById('decryptKey').value = `0x${Buffer.Buffer.from(decryptKey.privateKey).toString('hex')}`;
+                    break;
+                case 2://莱特币（litecoin）
+                    document.getElementById('decryptKey').value = wif.encode({ version: litecoin_network.wif, privateKey: decryptKey.privateKey, compressed: true });
+                    break;
+                case 3://狗狗币（dogecoin）
+                    document.getElementById('decryptKey').value = wif.encode({ version: dogecoin_network.wif, privateKey: decryptKey.privateKey, compressed: true });
+                    break;
+                default:
+                    break;
             }
             ev.target.removeAttribute("disabled");
             closeModal();
@@ -358,35 +460,63 @@ window.addEventListener("load", (evt) => {
     });
 
     document.getElementById("decryptKey").addEventListener('blur', (e) => {
-        let p = document.getElementById("decryptKey").value.trim();
-        if (cryptoType == 0) {//比特币
-            if (p == '' || p.slice(0, 3) == 'WIF') {
-                document.getElementById("format").innerText = '';
-            } else {
-                try {
-                    let decoded = wif.decode(p, isTestNet_bitcoin ? 239 : 128);
-                    document.getElementById("format").innerText = decoded.compressed ? "这是一个压缩格式的比特币私钥" : "这是一个非压缩格式的比特币私钥";
-                } catch (error) {
-                    alert(error);
+        let privateKey = document.getElementById("decryptKey").value.trim();
+        document.getElementById("format").innerText = "";
+        privateKey = privateKey.slice(0, 2) == '0x' ? privateKey.slice(2) : privateKey;
+        if (privateKey.length === 64) {
+            const hexRegex = /^[0-9A-Fa-f]{64}$/;
+            if (hexRegex.test(privateKey)) {
+                document.getElementById("format").innerText = "这是十六进制私钥"
+                return true;
+            }
+        }
+        switch (cryptoType) {
+            case 0: //比特币（bitcoin）
+                if (privateKey == '' || privateKey.slice(0, 3) == 'WIF') {
+                    document.getElementById("format").innerText = '';
+                } else {
+                    try {
+                        let decoded = wif.decode(privateKey, bitcoin_isTestNet ? 239 : 128);
+                        document.getElementById("format").innerText = decoded.compressed ? "这是一个压缩格式的比特币私钥" : "这是一个非压缩格式的比特币私钥";
+                    } catch (error) {
+                        document.getElementById("format").innerText = "这是非法的私钥"
+                    }
                 }
-            }
-        } else {//以太币
-            if (p.length != 66 || p.slice(0, 2) != '0x') {
-                document.getElementById("format").innerText = "这是不是一个合法的以太币私钥！";
-            } else {
-                document.getElementById("format").innerText = "";
-            }
+                break;
+            case 60: //以太币（ethereum）
+                if (privateKey.length != 66 || privateKey.slice(0, 2) != '0x') {
+                    document.getElementById("format").innerText = "这是不是一个合法的以太币私钥！";
+                }
+                break;
+            case 2://莱特币（litecoin）
+                // 检查是否为WIF格式 (通常以6、T、K或L开头)
+                if (privateKey.length >= 51 && privateKey.length <= 52) {
+                    const firstChar = privateKey[0];
+                    if (['6', 'T', 'K', 'L'].includes(firstChar)) {
+                        const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+                        if (base58Regex.test(privateKey)) {
+                            return true;
+                        }
+                    }
+                }
+                document.getElementById("format").innerText = "这是一个不合法的私钥！";
+                break;
+            case 501://索尔币（solana）
+                break;
+            default:
+                break;
         }
     });
 
     document.getElementById('eyes').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('password').setAttribute('type', 'text');
-    })
+    });
+
     document.getElementById('eyes').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('password').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('clear').addEventListener('click', (e) => {
         document.getElementById('decryptKey').value = '';
@@ -401,12 +531,11 @@ window.addEventListener("load", (evt) => {
             mnemonic: '',
             mnemonic_length: 24,
             seed_password: '',
-            path: `m/84'/${isTestNet_bitcoin ? 1 : 0}'/0'/0/0`,
+            path: `m/84'/${bitcoin_isTestNet ? 1 : 0}'/0'/0/0`,
         };
     })
 
     document.querySelectorAll('li').forEach((li, i) => {
-        //        if (i < 2) {
         li.addEventListener('click', (et) => {
             et.stopPropagation();
             if (et.currentTarget.getAttribute('pointer')) {
@@ -419,15 +548,27 @@ window.addEventListener("load", (evt) => {
                 e.querySelector('figure').style.background = '';
                 if (document.getElementById(e.dataset['id'])) {
                     document.getElementById(e.dataset['id']).style.visibility = 'hidden';
+                    document.getElementById(e.dataset['id']).querySelector
                 }
             });
-            if (et.currentTarget.getAttribute('data-id') == 'ethereum_html') {//以太币
-                cryptoType = 60;
-                et.currentTarget.style.borderTop = "#333 solid 2px";
-                //                document.querySelector('#ethereum_wallet_management>div').appendChild(document.getElementById('encrypt_privatekey'));
-            } else if (et.currentTarget.getAttribute('data-id') == 'bitcoin_html') {//比特币
-                //                document.querySelector('#wallet_management>div').appendChild(document.getElementById('encrypt_privatekey'));
-                cryptoType = 0;
+            switch (et.currentTarget.getAttribute('data-id')) {
+                case 'ethereum_html': //以太币
+                    cryptoType = 60;
+                    et.currentTarget.style.borderTop = "#333 solid 2px";
+                    break;
+                case 'bitcoin_html': //比特币
+                    cryptoType = 0;
+                    break;
+                case 'litecoin_html': //莱特币
+                    cryptoType = 2;
+                    et.currentTarget.style.borderTop = "#333 solid 2px";
+                    break;
+                case 'dogecoin_html': //狗狗币
+                    cryptoType = 3;
+                    et.currentTarget.style.borderTop = "#333 solid 2px";
+                    break;
+                default:
+                    break;
             }
             document.getElementById('cover_crypto').setAttribute('src', `images/${et.currentTarget.dataset['id']}.png`);
             et.currentTarget.style.borderBottom = "#fff solid 2px";
@@ -436,36 +577,35 @@ window.addEventListener("load", (evt) => {
             document.getElementsByTagName('main')[0].style.backgroundColor = et.currentTarget.style.backgroundColor;
             document.getElementsByTagName('body')[0].style.backgroundColor = et.currentTarget.style.backgroundColor;
         });
-        //        }
     });
 
     document.getElementById('view_account_pri').addEventListener('click', (ev) => {
         document.getElementById('view_more').innerHTML = `　　　　种子：${hd_more.seed}<br>　根扩展私钥：${hd_more.rood_ext_key}<br>账户扩展私钥：${hd_more.accPri}<br>账户扩展公钥：${hd_more.accPub}`;
-    })
+    });
 
     document.getElementById('fromWif_password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('fromWif_password').setAttribute('type', 'text');
-    })
+    });
 
     document.getElementById('fromWif_password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('fromWif_password').setAttribute('type', 'password');
-    })
-
-    document.getElementById('fromWif_privateKey_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', '../images/openeye.png');
-        document.getElementById('fromWif_wif').setAttribute('type', 'text');
-    })
-
-    document.getElementById('fromWif_privateKey_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', '../images/closeeye.png');
-        document.getElementById('fromWif_wif').setAttribute('type', 'password');
-    })
-
-    document.getElementById('fromWif_ok_btn').addEventListener('click', (et) => {
-        let pri_wif = document.getElementById('fromWif_wif').value.trim();
-        if (pri_wif == '') {
+    });
+    /*
+        document.getElementById('fromWif_privateKey_eye').addEventListener("mousedown", (ev) => {
+            ev.target.setAttribute('src', '../images/openeye.png');
+            document.getElementById('fromPrivateKey_private').setAttribute('type', 'text');
+        });
+    
+        document.getElementById('fromWif_privateKey_eye').addEventListener("mouseup", (ev) => {
+            ev.target.setAttribute('src', '../images/closeeye.png');
+            document.getElementById('fromPrivateKey_private').setAttribute('type', 'password');
+        });
+    */
+    document.getElementById('fromPrivateKey_ok_btn').addEventListener('click', async (et) => {
+        let pri_key = document.getElementById('fromPrivateKey_private').value.trim();
+        if (pri_key == '') {
             alert("请先输入私钥");
             return;
         }
@@ -476,26 +616,26 @@ window.addEventListener("load", (evt) => {
         document.getElementById('public_td1').innerHTML = '';
         document.getElementById('public_td2').innerHTML = '';
 
-        if (pri_wif.slice(0, 2) == '6P') {
+        if (pri_key.slice(0, 2) == '6P') {
             let password = document.getElementById('fromWif_password').value.trim();
             if (password == '') {
                 alert('私钥已经加密，但是没有提供私钥的保护密码！');
-                pri_wif = null;
+                pri_key = null;
                 return;
             } else {//私钥被密码保护，需要解密
                 try {
-                    openModal('请稍后，正在解密并签名…');
-                    if (!bip38.verify(pri_wif)) {
+                    await openModal('请稍后，正在解密…');
+                    if (!bip38.verify(pri_key)) {
                         throw new Error('不是一个合法的加密私钥！');
                     }
                     let N = parseInt(document.getElementById('N_id').value.trim());
                     let r = parseInt(document.getElementById('r_id').value.trim());
                     let p = parseInt(document.getElementById('p_id').value.trim());
-                    let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
-                    pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    let decryptKey = bip38.decrypt(pri_key, password, null, { N: N, r: r, p: p });
+                    pri_key = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
                     closeModal();
                 } catch (error) {
-                    pri_wif = null;
+                    pri_key = null;
                     closeModal();
                     alert(error);
                     return;
@@ -506,28 +646,51 @@ window.addEventListener("load", (evt) => {
         //        let ECPair = ecpair.ECPairFactory(bitcoinerlabsecp256k1);
         try {
             //1. 产生各种类型的地址：
-            let keyPair = ECPair.fromWIF(pri_wif, network);//压缩私钥产生压锁公钥，非压缩私钥产生非压缩公钥。
-            if (!keyPair.compressed) {
-                pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: wif.decode(pri_wif, isTestNet_bitcoin ? 239 : 128).privateKey, compressed: true });
-                keyPair = ECPair.fromWIF(pri_wif, network);
+            if (/^[01]{256}$/.test(pri_key)) {//二进制私钥
+                const bytes = pri_key.match(/.{1,8}/g) || [];
+                const p = new Uint8Array(
+                    bytes.map(byte => parseInt(byte.padEnd(8, '0'), 2))
+                );
+                pri_key = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: p, compressed: true });
+            }else if (/^[0-9a-fA-F]{64}$/.test(pri_key)) {//十六进制私钥（没有前缀0x）
+                //                pri_key = ECPair.fromPrivateKey(Buffer.Buffer.from(pri_key, 'hex'), { network: bitcoin_network }).toWIF();
+                pri_key = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: Buffer.Buffer.from(pri_key, 'hex'), compressed: true });
             }
-            let { address: address_p2pkh } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: network });
-            let { address: address_p2wpkh } = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network: network });
+            let keyPair = ECPair.fromWIF(pri_key, bitcoin_network);//压缩私钥产生压锁公钥，非压缩私钥产生非压缩公钥。
+            if (!keyPair.compressed) {
+                pri_key = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: wif.decode(pri_key, bitcoin_isTestNet ? 239 : 128).privateKey, compressed: true });
+                keyPair = ECPair.fromWIF(pri_key, bitcoin_network);
+            }
+            let { address: address_p2pkh } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: bitcoin_network });
+            let { address: address_p2wpkh } = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network: bitcoin_network });
+
+            // 下面产生p2sh-p2wpkh地址：
+            const witnessPubKeyHash = bitcoin.crypto.hash160(keyPair.publicKey);
+            const witnessScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_0,
+                witnessPubKeyHash
+            ]);
+            const redeemScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_HASH160,
+                bitcoin.crypto.hash160(witnessScript),
+                bitcoin.opcodes.OP_EQUAL
+            ]);
+            const address_p2sh_p2wpkh = bitcoin.address.fromOutputScript(redeemScript, bitcoin_network);
             //let { address: address_p2sh } = bitcoin.payments.p2sh({ redeem: bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey }) });
 
             //            bitcoin.initEccLib(bitcoinerlabsecp256k1);
-            let { address: address_p2tr } = bitcoin.payments.p2tr({ internalPubkey: Buffer.Buffer.from(toXOnly(keyPair.publicKey)), network: network });
-            document.getElementById('address_td1').innerHTML = `P2TR地址：<br>P2WPKH地址：<br>P2PKH地址：<br>`;
-            document.getElementById('address_td2').innerHTML = `${address_p2tr}（密钥路径）<br>${address_p2wpkh}<br>${address_p2pkh}`;
+            let { address: address_p2tr } = bitcoin.payments.p2tr({ internalPubkey: Buffer.Buffer.from(toXOnly(keyPair.publicKey)), network: bitcoin_network });
+            document.getElementById('address_td1').innerHTML = `P2TR地址：<br>P2WPKH地址：<br>P2SH-P2WPKH：<br>P2PKH地址：<br>`;
+            document.getElementById('address_td2').innerHTML = `${address_p2tr}（密钥路径）<br>${address_p2wpkh}<br>${address_p2sh_p2wpkh}<br>${address_p2pkh}`;
 
             //2. 产生各种编码格式的私钥：
-            let rawPrivateKey = wif.decode(pri_wif, isTestNet_bitcoin ? 239 : 128);//0x80（128）：比特币主网，0xEF（239）：测试网
-            let pri_compress = pri_wif;
-            let pri_uncompress = pri_wif;
+            let rawPrivateKey = wif.decode(pri_key, bitcoin_isTestNet ? 239 : 128);//0x80（128）：比特币主网，0xEF（239）：测试网
+            let pri_compress = pri_key;
+            let pri_uncompress = pri_key;
             if (rawPrivateKey.compressed) {
-                pri_uncompress = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: false });
+                pri_uncompress = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: false });
             } else {
-                pri_compress = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: true });
+                pri_compress = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: true });
             }
             let pri_raw = rawPrivateKey.privateKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
             let pri_binary = '';
@@ -549,7 +712,7 @@ window.addEventListener("load", (evt) => {
             let pub_uncompress = '';
             if (keyPair.compressed) {
                 pub_compress = keyPair.publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-                pub_uncompress = ECPair.fromWIF(pri_uncompress, network).publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');//非压缩私钥产生非压缩公钥
+                pub_uncompress = ECPair.fromWIF(pri_uncompress, bitcoin_network).publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');//非压缩私钥产生非压缩公钥
             }
             let schnorrPubKey = bitcoinerlabsecp256k1.xOnlyPointFromScalar(keyPair.privateKey);//产生Schnorr 公钥
             schnorrPubKey = schnorrPubKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -568,23 +731,23 @@ window.addEventListener("load", (evt) => {
         document.getElementById('private_td2').innerHTML = '';
         document.getElementById('public_td1').innerHTML = '';
         document.getElementById('public_td2').innerHTML = '';
-        document.getElementById('fromWif_wif').value = '';
+        document.getElementById('fromPrivateKey_private').value = '';
         document.getElementById('fromWif_password').value = '';
     })
 
-    document.getElementById('wallet_balance_btn').addEventListener('click', (et) => {
+    document.getElementById('wallet_balance_btn').addEventListener('click', async (et) => {
         let wallet_address = document.getElementById('wallet_address').value.trim();
         if (wallet_address == '') {
             alert("请先输入钱包地址或者交易id");
             return;
         }//bc1qujepl0k5n0ga2e86yskvxa6auehpf6dlf84dx0或者3Nntbr1ReGL4hCzgr8fGhFvKJvKzcAYENC或者7548329a72f9982bbe50fecad6fe9b4242877c75b1c950c3660b839e41f2e989
         if (wallet_address.length < 64) {//按钱包地址查询
-            if (!isValidBitcoinAddress(wallet_address, network)) {
+            if (!isValidAddress(wallet_address, bitcoin_network)) {
                 alert('不是合法的比特币地址！');
                 return;
             }
-            openModal('请稍后，正在获取…');
-            getUtxo(wallet_address, network != bitcoin.networks.bitcoin).then((ret) => {
+            await openModal('请稍后，正在获取…');
+            getUtxo(wallet_address, bitcoin_network != bitcoin.networks.bitcoin).then((ret) => {
                 document.getElementById('view_wallet_balance').innerHTML = `余额：${ret.balance}聪（${ret.balance / 100000000}比特）。共有${ret.txrefs ? ret.txrefs.length : 0}个UTXO：`
                 let ls = '';
                 let ms = '';
@@ -610,14 +773,15 @@ window.addEventListener("load", (evt) => {
         ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('bitcoin_segment_password').setAttribute('type', 'text');
         document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'text');
-    })
+    });
+
     document.getElementById('bitcoin_segment_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('bitcoin_segment_password').setAttribute('type', 'password');
         document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'password');
-    })
+    });
 
-    document.getElementById('bitcoin_signature_btn').addEventListener('click', (ev) => {
+    document.getElementById('bitcoin_signature_btn').addEventListener('click', async (ev) => {
         const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
         if (segmentText == '') {
             alert('被签名的文本不能为空！');
@@ -632,6 +796,7 @@ window.addEventListener("load", (evt) => {
                     alert('私钥已经加密，但是没有提供私钥的保护密码！');
                     return;
                 } else {//私钥被密码保护，需要解密
+                    let brek = 0;
                     try {
                         if (!bip38.verify(pri_wif)) {
                             throw new Error('不是一个合法的加密私钥！');
@@ -639,9 +804,16 @@ window.addEventListener("load", (evt) => {
                         let N = parseInt(document.getElementById('N_id').value.trim());
                         let r = parseInt(document.getElementById('r_id').value.trim());
                         let p = parseInt(document.getElementById('p_id').value.trim());
+                        await openModal('请稍后，正在解密…');
+                        brek = 1;
                         let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
-                        pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                        brek = 0;
+                        closeModal();
+                        pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
                     } catch (error) {
+                        if (brek == 1) {
+                            closeModal();
+                        }
                         pri_wif = null;
                         alert(error);
                         return;
@@ -651,7 +823,7 @@ window.addEventListener("load", (evt) => {
 
             let keyPair;
             try {
-                keyPair = ECPair.fromWIF(pri_wif, network);
+                keyPair = ECPair.fromWIF(pri_wif, bitcoin_network);
             } catch (err) {
                 alert(err);
                 return;
@@ -682,8 +854,7 @@ window.addEventListener("load", (evt) => {
             const signatureBase64 = signature.toString('base64');
             document.getElementById('bitcoin_segment_result').value = signatureBase64;
         }
-
-    })
+    });
 
     document.getElementById('bitcoin_veify_btn').addEventListener('click', (ev) => {
         const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
@@ -698,7 +869,7 @@ window.addEventListener("load", (evt) => {
             isValid = bitcoinjsMessage.verify(segmentText, p2wpkhAddress, signature);
         } catch (err) {
             const decodedP2wpkh = bitcoin.address.fromBech32(p2wpkhAddress);
-            const p2pkhAddress = bitcoin.address.toBase58Check(decodedP2wpkh.data, network.pubKeyHash);
+            const p2pkhAddress = bitcoin.address.toBase58Check(decodedP2wpkh.data, bitcoin_network.pubKeyHash);
             isValid = bitcoinjsMessage.verify(segmentText, p2pkhAddress, signature);
         }
         ev.target.parentNode.querySelector('#bitcoin_segment_verify_result').style.visibility = 'visible';
@@ -706,7 +877,7 @@ window.addEventListener("load", (evt) => {
 
     });
 
-    document.getElementById('bitcoin_reset_btn').addEventListener('click',(ev)=>{
+    document.getElementById('bitcoin_reset_btn').addEventListener('click', (ev) => {
         document.getElementById('bitcoin_segment_verify_result').style.visibility = 'hidden';
         document.getElementById('bitcoin_segment_text').value = '';
         document.getElementById('bitcoin_segment_result').value = '';
@@ -717,24 +888,24 @@ window.addEventListener("load", (evt) => {
 
     document.getElementById('recover_wallet').addEventListener('click', (e) => {
         recover_wallet();
-    })
+    });
 
     document.getElementById('close_dialog').addEventListener("click", () => {
         document.getElementById('wallet_dialog').close();
-    })
+    });
 
     document.getElementById('dialog_dec_close').addEventListener("click", () => {
         document.getElementById('dialog_deconstruction_rawtx').close();
-    })
+    });
 
     document.getElementById('view_raw_tx').addEventListener('click', (ev) => {
         let txID = document.getElementById('wallet_dialog').querySelector('h3').innerText.slice(5);
-        getTxDetail(txID, network != bitcoin.networks.bitcoin, true).then((rawTX) => {
+        getTxDetail(txID, bitcoin_network != bitcoin.networks.bitcoin, true).then((rawTX) => {
             //            const tx = bitcoin.Transaction.fromHex(rawTX);
             document.getElementById('display_rawtx').innerHTML = rawTX;
             //            alert(rawTX);
         });
-    })
+    });
 
     document.getElementById('gen_multi_sign').addEventListener('click', (ev) => {
         let pubKeys_str = document.getElementById('get_multi_address').value.trim().split(',').filter(e => e != '');
@@ -756,17 +927,17 @@ window.addEventListener("load", (evt) => {
         const p2sh_address = bitcoin.address.toBase58Check(redeem_hash, 0x05);
         const output_ASM = `OP_HASH160 ${redeem_hash.toString('hex')} OP_EQUAL`;
         /*        
-                let redeem_script = bitcoin.payments.p2ms({ output: script_hex, network: network });
+                let redeem_script = bitcoin.payments.p2ms({ output: script_hex, network: bitcoin_network });
         
                 const p2sh = bitcoin.payments.p2sh({
                     redeem: redeem_script,
-                    network: network
+                    network: bitcoin_network
                 });
         */
         const p2wsh = bitcoin.payments.p2wsh({
             redeem: { output: script_hex },
             //            output: bitcoin.script.fromASM(output_ASM),
-            network: network
+            network: bitcoin_network
         });
 
         document.getElementById('dis_multi_address').innerHTML = `
@@ -792,7 +963,7 @@ window.addEventListener("load", (evt) => {
         const p2tr = bitcoin.payments.p2tr({
             internalPubkey: internalPubkey,                                   // 使用您的公钥作为内部密钥(去掉压缩前缀)
             scriptTree: merkleTree,
-            network
+            bitcoin_network
         });
         document.getElementById('dis_route_address').innerHTML = `
             <span style="width: 7rem; display: inline-block; text-align: right;">P2TR地址：</span>${p2tr.address}<br>
@@ -823,7 +994,7 @@ window.addEventListener("load", (evt) => {
             //            console.log(prefix + siblings);
         });
         document.getElementById('spend_p2tr_utxo').innerHTML = spends;
-    })
+    });
 
     document.getElementById('multi_sign_help').addEventListener('click', (ev) => {
         document.getElementById('help').style.width = "400px";
@@ -833,7 +1004,91 @@ P2SH的一个典型应用案例是多签，即允许多个人签名才能花钱�
 </p>
 <p class="help">P2WSH是Pay-to-Witness-Script-Hash的首字母缩写，是在P2SH的基础上增加隔离见证，从而实现了隔离见证的多签这种极具吸引力的功能，一方面提高了效率、降低交易费用，另一方面还增强了比特币的智能合约功能（借鉴以太坊）。P2WSH虽然比常规 P2WPKH 更复杂，但为更高级的可扩展性和可编程性铺平了道路，相信会有越来越多人的使用它。</p>
 `;
-    })
+    });
+
+    document.getElementById('bitcoin_customize_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', '../images/openeye.png');
+        document.getElementById('bitcoin_customize_password').setAttribute('type', 'text');
+        document.getElementById('bitcoin_customize_privateKey').setAttribute('type', 'text');
+    });
+
+    document.getElementById('bitcoin_customize_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', '../images/closeeye.png');
+        document.getElementById('bitcoin_customize_password').setAttribute('type', 'password');
+        document.getElementById('bitcoin_customize_privateKey').setAttribute('type', 'password');
+    });
+
+    document.getElementById('bitcoin_customize_go').addEventListener('click', async (ev) => {
+        const spendPass = document.getElementById('bitcoin_customize_spendpass').value.trim();
+        let pri_wif = document.getElementById('bitcoin_customize_privateKey').value.trim();
+        if (spendPass == '' || pri_wif == '') {
+            alert('花钱暗语和私钥不能为空！');
+            return;
+        }
+        if (pri_wif) {
+            if (pri_wif.slice(0, 2) == '6P') {
+                let password = document.getElementById('bitcoin_customize_password').value;
+                if (password == '') {
+                    pri_wif = null;
+                    alert('私钥已经加密，但是没有提供私钥的保护密码！');
+                    return;
+                } else {//私钥被密码保护，需要解密
+                    let brek = 0;
+                    try {
+                        if (!bip38.verify(pri_wif)) {
+                            throw new Error('不是一个合法的加密私钥！');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        await openModal('请稍后，正在生成…');
+                        brek = 1;
+                        let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
+                        brek = 0;
+                        closeModal();
+                        pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    } catch (error) {
+                        if (brek == 1) {
+                            closeModal();
+                        }
+                        pri_wif = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+            let keyPair;
+            try {
+                keyPair = ECPair.fromWIF(pri_wif, bitcoin_network);
+            } catch (err) {
+                alert(err);
+                return;
+            }
+            const secretHash = bitcoin.crypto.hash160(bitcoin.crypto.sha256(Buffer.Buffer.from(spendPass, 'utf8')));
+            const redeemScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_HASH160,
+                secretHash,
+                bitcoin.opcodes.OP_EQUALVERIFY,
+                keyPair.publicKey,
+                bitcoin.opcodes.OP_CHECKSIG,
+            ]);
+            const p2wshPayment = bitcoin.payments.p2wsh({
+                redeem: { output: redeemScript, network: bitcoin_network },
+                network: bitcoin_network
+            });
+            document.getElementById('bitcoin_customize_result').innerHTML = `
+            P2WSH钱包地址：${p2wshPayment.address}<br>赎回脚本：${bitcoin.script.toASM(redeemScript)}<br><span style="color: #aaa"><span style="width: 1000px; display: inline-block; text-align: right;">（赎回脚本格式：OP_HASH160 &lt;花钱暗语的哈希值的哈希值&gt; OP_EQUALVERIFY  &lt;公钥&gt; OP_CHECKSIG）</span>
+            <br>输出脚本：${p2wshPayment.output.toString('hex')}<br>见证数据格式：&lt;签名&gt;&nbsp;&nbsp;&lt;花钱暗语的哈希值&gt;&nbsp;&nbsp;&lt;赎回脚本&gt;</span>
+            <p style="color: red">必须牢记私钥、私钥保护密码（如果有）、花钱暗语和赎回脚本。</p>`;
+        }
+    });
+
+    document.getElementById('bitcoin_customize_reset').addEventListener('click', (ev) => {
+        document.getElementById('bitcoin_customize_privateKey').value = '';
+        document.getElementById('bitcoin_customize_password').value = '';
+        document.getElementById('bitcoin_customize_spendpass').value = '';
+        document.getElementById('bitcoin_customize_result').innerHTML = '';
+    });
 
     document.getElementById('multi_route_help').addEventListener('click', (ev) => {
         document.getElementById('help').style.width = "400px";
@@ -845,18 +1100,18 @@ P2TR地址生成方式不同于前述方式，而且采用了Bech32m编码，Bec
 P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签名和聚合公钥，第二种方法是提供MAST树上包含的任一输出脚本对应的输入脚本（类似P2SH）以及路径。矿工判断一笔交易具体采用何种花费方式：如果对应的隔离见证的条款只有一项，说明就是第一种花费方法，如果对应的隔离见证的条款有多项，说明就是第二种花费方法。
 </p>
 `;
-    })
+    });
 
     document.querySelector("#help>input").addEventListener('click', (ev) => {
         ev.target.parentNode.style.width = "0px";
-    })
+    });
 
     document.getElementById('reset_multi_sign').addEventListener('click', (ev) => {
         document.getElementById('least_sign').innerText = '*';
         document.getElementById('get_multi_address').value = '';
         document.getElementById('dis_multi_address').innerHTML = '';
         document.getElementById('get_multi_redeem').value = '';
-    })
+    });
 
     document.getElementById('get_multi_address').addEventListener('input', (ev) => {
         let inp = ev.target.value.trim();
@@ -875,14 +1130,14 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         document.getElementById('signs').setAttribute('max', inps.length);
         document.getElementById('signs').value = inps.length - 1;
         calculate_redeem_script(inps);
-    })
+    });
 
     document.getElementById('signs').addEventListener('input', (ev) => {
         let inp = document.getElementById('get_multi_address').value.trim();
         if (inp == '') { return }
         let inps = inp.split(',').filter(e => e != '');
         calculate_redeem_script(inps);
-    })
+    });
     /*
         document.querySelectorAll('.tx_in_delete')?.forEach(btn => {
             btn.addEventListener('click', (ev) => {
@@ -899,21 +1154,22 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
             });
         })
     */
-    document.getElementById('tx_me_utxo').addEventListener('click', (et) => {
+    document.getElementById('tx_me_utxo').addEventListener('click', async (et) => {
         let wallet_address = document.getElementById('tx_me_address').value.trim();
         if (wallet_address == '') {
             alert("请先输入钱包地址或者交易id");
             return;
         }//bc1qujepl0k5n0ga2e86yskvxa6auehpf6dlf84dx0或者3Nntbr1ReGL4hCzgr8fGhFvKJvKzcAYENC或者7548329a72f9982bbe50fecad6fe9b4242877c75b1c950c3660b839e41f2e989
-        if (!isValidBitcoinAddress(wallet_address, network)) {
-            alert('不是合法的比特币地址！');
+        if (!isValidAddress(wallet_address, bitcoin_network)) {
+            alert('不是合法的比特币地址！可能比特币网络选择错误。');
             return;
         }
 
         if (canFetchRawTX) {
-            openModal('请稍后，正在获取UTXO…');
-            getUtxo(wallet_address, network != bitcoin.networks.bitcoin).then((ret) => {
-                document.getElementById('tx_wallet_balance').innerHTML = `<br>钱包余额：${ret.balance}聪（${ret.balance / 100000000}个比特币），共有${ret.txrefs ? ret.txrefs.length : 0}个UTXO：`
+            await openModal('请稍后，正在获取UTXO…');
+            getUtxo(wallet_address, bitcoin_network != bitcoin.networks.bitcoin).then((ret) => {
+                let balance = ret.txrefs.reduce((total, item) => { return total + item.value; }, 0);
+                document.getElementById('tx_wallet_balance').innerHTML = `<br>钱包余额：${balance}聪（${balance / 100000000}个比特币），共有${ret.txrefs ? ret.txrefs.length : 0}个UTXO：`
                 let ls = '';
                 let ms = '';
                 let rs = '';
@@ -936,10 +1192,10 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                     btn.addEventListener('click', (ev) => {
                         let addressType = document.getElementById('tx_me_type').value;
                         let redeem_script = '';
-                        if (addressType != '2' || addressType != '4') {
+                        if (addressType == '2' || addressType == '4' || addressType == '6') {
                             let redeemObj = document.getElementById('redeem_script');
                             if (!redeemObj) {
-                                alert('P2SH或P2WSH类型的地址，必须提供赎回脚本！');
+                                alert('针对P2SH或P2WSH地址，必须提供赎回脚本！对于P2SH-P2WPKH地址，必须提供公钥！');
                                 return;
                             }
                             redeem_script = redeemObj.querySelector('textarea').value.trim();
@@ -952,8 +1208,9 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                         inNode.setAttribute('data-uid', ev.target.parentNode.dataset.uid);
                         inNode.setAttribute('data-type', document.getElementById('tx_me_type').value);
                         inNode.setAttribute('data-redeem', redeem_script);
+                        inNode.setAttribute('data-spendpass', document.getElementById('customize_spend_pass').value.trim());
                         inNode.innerHTML = `<span>交易ID：</span><a href="javascript:view_tx('${outx[i].tx_hash}')" style="text-decoration:none" title="${outx[i].tx_hash}">${outx[i].tx_hash}</a><br>
-                    <span>序号：</span><b class='output_index'>${outx[i].tx_output_n}</b><br><span>金额：</span><b>${new Intl.NumberFormat('en-US').format(outx[i].value)}</b>聪<br>
+                    <span>序号：</span><b class='output_index'>${outx[i].tx_output_n}</b><br><span>金额：</span><b class="value">${new Intl.NumberFormat('en-US').format(outx[i].value)}</b>聪<br>
                     <span>顺序号：</span><b class='sequence'>${sequence}</b><br><span>地址：</span><code title="${address}">${address}</code><br><input type="image" src="../images/delete.png" title="删除"
                                 style="float: right; padding: 2px;" class="tx_in_delete">`;
                         let box_ins = document.getElementById('tx_ins');
@@ -973,20 +1230,20 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
 
                             let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
                             let tx_fee = totalAmount - parseInt(toOut);
-                            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+                            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
                             document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
                             document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-                            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
-                            //                        document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(amount) - parseInt(val)-fee);
+                            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
+                            //                        document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(amount) - parseInt(val)-bitcoin_fee_satoshi);
                             let tar = document.querySelector("#tx_utxo_td1>div[data-uid='" + ev.target.parentNode.dataset.uid + "']");
                             if (tar) {
                                 tar.querySelector('span').style.visibility = 'hidden';
                                 tar.querySelector('button').removeAttribute('disabled');
                             }
-                            ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
                             let i = parseInt(ev.target.parentNode.parentNode.dataset.number);
                             i--;
                             ev.target.parentNode.parentNode.dataset.number = `${i}`;
+                            ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
                             if (i > 1) {
                                 document.getElementById('tx_ins').parentNode.style.height = `${parseInt(document.getElementById('tx_ins').parentNode.style.height) - 110}px`;
                             }
@@ -999,10 +1256,10 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                         document.getElementById('tx_amount').innerText = new Intl.NumberFormat('en-US').format(totalAmount);
                         let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
                         let tx_fee = totalAmount - parseInt(toOut);
-                        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+                        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
                         document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
                         document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-                        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+                        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
                     });
                 })
                 closeModal();
@@ -1015,7 +1272,6 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
             document.getElementById('no_network').style.display = 'block';
             alert("Can't get the UTXO automatically, you need to manually enter the data");
         }
-
     });
 
     document.querySelector('#no_network>button').addEventListener('click', (ev) => {
@@ -1049,7 +1305,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         inNode.setAttribute('data-type', document.getElementById('tx_me_type').value);
         inNode.setAttribute('data-redeem', redeem_script);
         inNode.innerHTML = `<span>交易ID：</span><a href="javascript:view_tx('${tx_id}')" style="text-decoration:none" title="${tx_id}">${tx_id}</a><br>
-        <span>序号：</span><b class='output_index'>${out_index}</b><br><span>金额：</span><b>${new Intl.NumberFormat('en-US').format(tx.outs[out_index].value)}</b>聪<br>
+        <span>序号：</span><b class='output_index'>${out_index}</b><br><span>金额：</span><b class="value">${new Intl.NumberFormat('en-US').format(tx.outs[out_index].value)}</b>聪<br>
         <span>顺序号：</span><b class='sequence'>${sequence}</b><br><span>地址：</span><code title="${address}">${address}</code><br><input type="image" src="../images/delete.png" title="删除"
                     style="float: right; padding: 2px;" class="tx_in_delete">`;
         let box_ins = document.getElementById('tx_ins');
@@ -1069,10 +1325,10 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
 
             let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
             let tx_fee = totalAmount - parseInt(toOut);
-            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
             document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
             document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
 
             ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
             ev.target.parentNode.parentNode.data.number = parseInt(ev.target.parentNode.parentNode.data.number) - 1;
@@ -1086,11 +1342,11 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         document.getElementById('tx_amount').innerText = new Intl.NumberFormat('en-US').format(totalAmount);
         let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
         let tx_fee = totalAmount - parseInt(toOut);
-        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
         document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
         document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
-    })
+        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
+    });
 
     document.getElementById('manual_txId').addEventListener('blur', (ev) => {
         let txId = ev.target.value.trim();
@@ -1098,47 +1354,84 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
             alert("必须位64位的十六进制字符串！");
             return;
         }
-        let url = isTestNet_bitcoin ? `https://blockstream.info/testnet/api/tx/${txId}/hex` : `https://blockchain.info/rawtx/${txId}?format=hex`;
+        let url = bitcoin_isTestNet ? `https://blockstream.info/testnet/api/tx/${txId}/hex` : `https://blockchain.info/rawtx/${txId}?format=hex`;
         ev.target.parentNode.querySelector('#manual_txHex_tips').innerHTML = `访问&nbsp;<b style="font-size: small;">${url}</b>&nbsp;，把结果粘贴在下面：`;
         ev.target.parentNode.querySelector('#manual_txHex').value = '';
-    })
+    });
+
     document.getElementById('tx_me_address').addEventListener('input', (ev) => {
         let address = ev.target.value.trim();
-        if (address < 26) { return };
+        if (address.legnth < 26) { return };
         let address_type = document.getElementById('tx_me_type');
         if (address.slice(0, 4) == 'bc1q' || address.slice(0, 4) == 'tb1q') {//长度小于50的为P2WPKH，否则为P2WSH
-            //        document.getElementById('coin_type').selectedIndex = 0;
             address_type.selectedIndex = address.length < 50 ? 3 : 4;
         } else if (address[0] == '1' || address[0] == 'm' || address[0] == 'n') {//长度小于36的为P2PKH，否则为P2PK
             address_type.selectedIndex = address.length < 36 ? 1 : 0;
         } else if (address.slice(0, 4) == 'bc1p' || address.slice(0, 4) == 'tb1p') {//P2TR
             address_type.selectedIndex = 5;
-        } else if (address[0] == '3' || address[0] == '2') {//P2SH
-            address_type.selectedIndex = 2;
+        } else if (address[0] == '3' || address[0] == '2') {//P2SH 或者 P2SH-P2WPKH：3-正式，2-测试。
+            try {
+                // Decode the address
+                const decoded = bitcoin.address.fromBase58Check(address);
+
+                // Check if the address is a P2SH address
+                if (decoded.version == bitcoin_network.scriptHash) {
+
+                    // Check if the script is P2WPKH
+                    const redeemScript = bitcoin.script.compile([
+                        bitcoin.opcodes.OP_0,
+                        decoded.hash // This is the 20-byte public key hash
+                    ]);
+
+                    // Decompile the redeem script and check if it's a valid P2WPKH format
+                    const script = bitcoin.script.decompile(redeemScript);
+
+                    // Check if the script matches the P2WPKH format
+                    if (script && script[0] === bitcoin.opcodes.OP_0 && script[1].length === 20) {
+                        address_type.selectedIndex = 6;
+                    } else {
+                        address_type.selectedIndex = 2;
+                    }
+                }
+            } catch (e) {
+                return false; // Invalid address format
+            }
         } else {
-            address_type.selectedIndex = 6;
+            address_type.selectedIndex = 7;
         }
         document.getElementById('tx_wallet_balance').innerHTML = '';
         document.getElementById('tx_utxo_td0').innerHTML = '';
         document.getElementById('tx_utxo_td1').innerHTML = '';
         address_type.dispatchEvent(new Event('change'));
-    })
+    });
 
     document.getElementById('tx_me_type').addEventListener('change', (ev) => {
         if (ev.target.value == 2 || ev.target.value == 4) {
+            document.querySelector('#redeem_script>p').innerHTML = '赎回脚本：';
+            document.querySelector('#redeem_script>textarea').setAttribute('placeholder', '汇编格式的赎回脚本…');
+            document.querySelector('#redeem_script>textarea').setAttribute('rows', '3');
+            document.getElementById('redeem_script').style.display = 'block';
+        } else if (ev.target.value == 6) {
+            document.querySelector('#redeem_script>p').innerHTML = '公钥：';
+            document.querySelector('#redeem_script>textarea').setAttribute('placeholder', '输入地址对应的公钥…');
+            document.querySelector('#redeem_script>textarea').setAttribute('rows', '1');
             document.getElementById('redeem_script').style.display = 'block';
         } else {
             document.getElementById('redeem_script').style.display = 'none';
+            return;
         }
-    })
-
-    document.getElementById('choose_network').addEventListener('click', (evt) => {
-        document.getElementById('configure_global_parameters').style.visibility = 'visible';
-    })
+        document.getElementById('customize_checkbox').addEventListener('click', (ev) => {
+            if (ev.target.checked) {
+                document.getElementById('customize_spend_pass').style.visibility = 'visible';
+            } else {
+                document.getElementById('customize_spend_pass').style.visibility = 'hidden';
+            }
+        });
+    });
 
     document.getElementById('tx_he_address').addEventListener('input', (ev) => {
         let address = ev.target.value.trim();
-        if (address < 26) { return };
+        if (address.length < 26) { return };
         let address_type = document.getElementById('tx_he_type');
         if (address.slice(0, 4) == 'bc1q' || address.slice(0, 4) == 'tb1q') {//长度小于50的为P2WPKH，否则为P2WSH
             //        document.getElementById('coin_type').selectedIndex = 0;
@@ -1155,7 +1448,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
     });
 
     document.getElementById('tx_he_type').addEventListener('change', (ev) => {
-        if (ev.target.value == '6') {
+        if (ev.target.value == '7') {
             document.getElementById('op_return_data').style.display = 'block';
             document.getElementById('tx_he_address').setAttribute('disabled', '');
             document.getElementById('tx_he_amount').value = '0';
@@ -1179,24 +1472,24 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
             node.style.color = 'red';
         }
     })
-
-    document.getElementById('fee_dollars').addEventListener('input', (ev) => {
-        rate = parseFloat(document.getElementById('rate').value.replace(/,/g, ''));
-        fee = Math.round(ev.target.value / rate * 100000000);
-        document.getElementById('fee').innerText = fee;
-        let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
-        let totalAmount = document.getElementById('tx_amount').innerText.replace(/,/g, '');
-        let tx_fee = parseInt(totalAmount) - parseInt(toOut);
-        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
-        fee_dollars = parseFloat(ev.target.value.trim());
-        document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
-        document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * rate / 1000000) / 100;
-        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
-
-
-        //        document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(val)-fee);
-    })
-
+    /*
+        document.getElementById('bitcoin_fee_dollars').addEventListener('input', (ev) => {
+            //        rate = parseFloat(document.getElementById('rate').value.replace(/,/g, ''));
+            bitcoin_fee_satoshi = Math.round(ev.target.value / bitcoin_rate * 100000000);
+            document.getElementById('bitcoin_fee_satoshi').innerText = bitcoin_fee_satoshi;
+            let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
+            let totalAmount = document.getElementById('tx_amount').innerText.replace(/,/g, '');
+            let tx_fee = parseInt(totalAmount) - parseInt(toOut);
+            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
+            bitcoin_fee_dollars = parseFloat(ev.target.value.trim());
+            document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
+            document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
+            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
+    
+    
+            //        document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(val)-bitcoin_fee_satoshi);
+        })
+    */
     document.getElementById('tx_he_output').addEventListener('click', (ev) => {
         if (document.getElementById('tx_he_type').value == '6') {//OP_RETURN
             let data = document.getElementById('op_data').value.trim();
@@ -1212,7 +1505,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
             alert('请输入对方地址！');
             return;
         }
-        if (!isValidBitcoinAddress(toAddress, network)) {
+        if (!isValidAddress(toAddress, bitcoin_network)) {
             alert('不是合法的比特币地址！');
             return;
         }
@@ -1235,46 +1528,46 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         let outAmount = parseInt(toOut) + toAmount;
         document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(outAmount);
         tx_fee = parseInt(tx_fee) - toAmount;
-        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
         document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
         document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
 
         inNode.querySelector('input').addEventListener('click', (ev) => {
             let val = ev.target.parentNode.querySelector('b').innerText.replace(/,/g, '');
             let tx_fee = document.getElementById('tx_fee').innerText.replace(/,/g, '');
             let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
             tx_fee = parseInt(tx_fee) + parseInt(val);
-            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
             document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
             document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
             document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(toOut) - parseInt(val));
             ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
         });
         document.getElementById('tx_he_address').value = '';
         document.getElementById('tx_he_amount').value = '';
-    })
+    });
 
     document.getElementById('private_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('tx_private').setAttribute('type', 'text');
-    })
+    });
 
     document.getElementById('private_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('tx_private').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', '../images/openeye.png');
         document.getElementById('tx_password').setAttribute('type', 'text');
-    })
+    });
 
     document.getElementById('password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', '../images/closeeye.png');
         document.getElementById('tx_password').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('import_input').addEventListener('click', (ev) => {
         let txInputs = document.querySelectorAll('#tx_ins>div');
@@ -1288,13 +1581,14 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         let i = 0;
 
         psbt = psbt_bak = null;
-        psbt = new bitcoin.Psbt({ network: network });
+        psbt = new bitcoin.Psbt({ network: bitcoin_network });
         psbt.setVersion(parseInt(document.getElementById('tx_version').value));
         psbt.setLocktime(parseInt(document.getElementById('tx_locktime').value));
 
         txInputs.forEach((inp) => {
             let inp_copy = inp.cloneNode(true);
             inp_copy.removeChild(inp_copy.querySelector('input'));
+            inp_copy.setAttribute('class', 'import_txIn');
             psbt_addInput(inp_copy);
             let row = document.createElement('tr');
             row.innerHTML = `               <td></td>
@@ -1331,9 +1625,9 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                 });
             }
         });
-    })
+    });
 
-    document.getElementById('tx_sign').addEventListener('click', (ev) => {
+    document.getElementById('tx_sign').addEventListener('click', async (ev) => {
         if (!psbt_bak) {
             psbt_bak = psbt.clone();
         }
@@ -1357,7 +1651,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         sign_inputs.forEach((e) => {
             ins.push(parseInt(e.value));
         })
-        let inputs = document.querySelectorAll(".txIn");
+        let inputs = document.querySelectorAll(".import_txIn");
 
         if (private.slice(0, 2) == '6P') {
             let password = document.getElementById('tx_password').value;
@@ -1368,7 +1662,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                 return;
             } else {//私钥被密码保护，需要解密
                 try {
-                    openModal('请稍后，正在解密并签名…');
+                    await openModal('请稍后，正在解密并签名…');
                     if (!bip38.verify(private)) {
                         throw new Error('不是一个合法的加密私钥！');
                     }
@@ -1376,7 +1670,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                     let r = parseInt(document.getElementById('r_id').value.trim());
                     let p = parseInt(document.getElementById('p_id').value.trim());
                     let decryptKey = bip38.decrypt(private, password, null, { N: N, r: r, p: p });
-                    private = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    private = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
                     closeModal();
                 } catch (error) {
                     private = null;
@@ -1388,13 +1682,40 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         }
 
         try {
-            let keyPair = ECPair.fromWIF(private, network);
+            let keyPair = ECPair.fromWIF(private, bitcoin_network);
             ins.forEach((i) => {
                 if (inputs[i].dataset.type == '5') {//P2TR地址
                     psbt.updateInput(i, { tapInternalKey: toXOnly(keyPair.publicKey) });
-                    keyPair = tweakSigner(keyPair, { network: network });
+                    keyPair = tweakSigner(keyPair, { network: bitcoin_network });
                 }
                 psbt.signInput(i, keyPair);
+                if (inputs[i].dataset.type == '4' && inputs[i].dataset.spendpass != '') {//P2WSH地址
+                    // 创建见证数据：签名 + 花钱密码 + 赎回脚本
+                    const myFinalizer = (inputIndex, input) => {
+                        // 构建正确的 Witness 堆栈：[花钱密码, 签名]
+                        const witnessStack = [
+                            input.partialSig[0].signature,    // 签名 (Buffer)
+                            bitcoin.crypto.sha256(Buffer.Buffer.from(inputs[i].dataset.spendpass, 'utf8')), // 花钱密码 (Buffer)
+                            bitcoin.script.fromASM(inputs[i].dataset.redeem)//赎回脚本
+                        ];
+
+                        // 序列化 Witness 堆栈
+                        // Witness 堆栈需要被序列化为单个 Buffer：
+                        // [条目数] [条目1长度] [条目1] [条目2长度] [条目2] ...
+                        // 我们使用 `varuint-bitcoin` 库来编码长度。
+                        const witness = witnessStackToScriptWitness(witnessStack);
+
+                        return {
+                            finalScriptSig: Buffer.Buffer.from(""),
+                            finalScriptWitness: witness
+                        };
+                    };
+                    //非标赎回脚本，不需要验证签名。
+                    psbt.finalizeInput(0, myFinalizer);
+                } else {
+                    psbt.validateSignaturesOfInput(i, psbt.data.inputs[i].tapInternalKey ? validator_schnorr : validator);
+                    psbt.finalizeInput(i);
+                }
             });
             keyPair = null;
         } catch (err) {
@@ -1447,13 +1768,8 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
     });
 
     document.getElementById('output_tx_hex').addEventListener('click', (ev) => {
-        for (let i = 0; i < psbt.data.inputs.length; i++) {
-            psbt.validateSignaturesOfInput(i, psbt.data.inputs[i].tapInternalKey ? validator_schnorr : validator);//验证签名
-        }
-        psbt.finalizeAllInputs();
         let tx = psbt.extractTransaction();
         document.getElementById('tx_hex').innerText = document.getElementById('txHex_edit').innerText = tx.toHex();
-        //        document.getElementById('txHex_edit').innerText = document.getElementById('tx_hex').innerText;
         let tx_fee = document.getElementById('tx_fee').innerHTML.replace(/,/g, '');
         document.getElementById('dec_fee').innerHTML = `交易Id：${tx.getId()}<span style="float: right">交易费用：${tx_fee}聪（${document.getElementById('tx_fee_dollar').innerHTML}美元）</span>`;
     });
@@ -1462,7 +1778,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         let rawTx = document.getElementById('txHex_edit').value.trim();
         if (rawTx == '') { return; }
         document.getElementById('dispatch_raw_hex').innerText = rawTx;
-        document.getElementById('dispatch_result').parentNode.style.visibility = 'hidden';
+        //        document.getElementById('dispatch_result').parentNode.style.visibility = 'hidden';
         document.getElementById('dispatch_tx').removeAttribute('disabled');
         document.getElementById('dis_raw_hex').innerHTML = rawTx;
         let tx = '';
@@ -1541,8 +1857,8 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
                 <tr>
                     <td rowspan="4">第${i + 1}个输出</td>
                     <td colspan="3" style="vertical-align: top;">${tx.outs[i].script[0] == 106 ? '存储内容' : '地址'}</td>
-                    <td>${output2address(tx.outs[i].script.toString('hex'), !isTestNet_bitcoin)}</td>
-                </tr>
+                    <td>${output2address(tx.outs[i].script.toString('hex'), bitcoin_network)}</td>
+                </tr> 
                 <tr>
                     <td colspan="3" style="vertical-align: top;">金额</td>
                     <td>${tx.outs[i].value}聪<br><span style="font-size: 0.8rem; color: #aaa">${decToHex(tx.outs[i].value, 16)}</span>
@@ -1594,16 +1910,16 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         `;
         document.querySelector('#deconstruction_table>tbody').innerHTML = deconstruction;
         document.getElementById('dialog_deconstruction_rawtx').showModal();
-    })
+    });
 
     document.getElementById('tx_raw_copy').addEventListener('mouseover', (ev) => {
         ev.target.parentNode.querySelector('input').style.visibility = 'visible';
-    })
+    });
 
     document.getElementById('tx_raw_copy').addEventListener('mouseout', (ev) => {
         ev.target.parentNode.querySelector('input').style.visibility = 'hidden';
         ev.target.parentNode.querySelector('span').style.visibility = 'hidden';
-    })
+    });
 
     document.getElementById('tx_raw_copy').querySelector('input').addEventListener('click', (ev) => {
         let copyNode = document.getElementById('dispatch_raw_hex');
@@ -1614,7 +1930,7 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         selection.addRange(range);
         navigator.clipboard.writeText(copyNode.innerText);
         ev.target.parentNode.querySelector('span').style.visibility = 'visible';
-    })
+    });
 
     document.getElementById('dispatch_tx').addEventListener('click', (ev) => {
         let tx_hex = document.getElementById('dispatch_raw_hex').innerText;
@@ -1623,9 +1939,22 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
         }
 
         broadcastTransaction(tx_hex);
-    })
+    });
 
-    if (window.innerWidth < 1326) {
+/*     Array.from(document.querySelectorAll("input")).forEach(inputObj => {
+        inputObj.addEventListener("focus", (evt) => {
+            //            evt.target.previousElementSibling.style.cssText = "color: blue;font-size: 14px;top: -1.2em;";
+            evt.target.style.borderColor = "blue";
+        });
+        inputObj.addEventListener("blur", (evt) => {
+            // if (evt.target.value == "")
+            //     evt.target.previousElementSibling.style.cssText = "color: gray;font-size: 18px;top: 2px;";
+            evt.target.style.borderColor = "black";
+            //            evt.target.previousElementSibling.style.color = "gray";
+        });
+    });
+
+ */    if (window.innerWidth < 1326) {
         alert("我是不让你在移动设备上买卖加密币的，移动设备是最不安全的！请使用电脑，最好采用火狐浏览器。");
         window.close();
     }
@@ -1633,9 +1962,24 @@ P2TR类型的输出存在两种花费方法：第一种方法是提供聚合签�
     bitcoin.initEccLib(bitcoinerlabsecp256k1);
 
     doing = document.getElementById('waiting');
-    //    document.getElementById('dialog_deconstruction_rawtx').showModal();
 
     checkEnv();
     window.addEventListener("online", checkEnv);
     window.addEventListener("offline", checkEnv);
+    document.getElementById('cover_crypto').style.visibility = 'visible';
+    setTimeout(init_ok, 5000);
 });
+
+function init_ok() {
+    let txHash = bitcoin_isTestNet ? "ffb32fbe3b0e260e38e82025d7dcf72a24feb3da455445015aaf8b8f9c9da68f" : "c6e81c4a315d7eed40cb32b2558f4b142d37959f7e8eb3eb5c43fdf2931cca42";
+    getTxDetail(txHash, bitcoin_isTestNet, true).then((rawHex) => {
+        if (rawHex.length > 20) {
+            let address = bitcoin_isTestNet ? "tb1qng6f35spexs5nr80enz3a76kuz5s9m20um22xx" : "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+            getUtxo(address, bitcoin_isTestNet).then((ret) => {
+                canFetchRawTX = true;
+            })
+        }
+    }).catch(err => {
+        canFetchRawTX = false;
+    });
+} 

@@ -45,7 +45,9 @@ function tapTweakHash(pubKey, merkleRoot) {
 async function psbt_addInput(inObj) {
     let txHash = inObj.querySelector('a').innerText.trim();
     let output_index = parseInt(inObj.querySelector('.output_index').innerText.trim());
+    let value = parseInt(inObj.querySelector('.value').innerText.trim().replace(/,/g, ''));
     let sequence = parseInt(inObj.querySelector('.sequence').innerText.trim(), '16');
+    let address = inObj.querySelector('code').getAttribute('title');
     let redeem_script = inObj.dataset.redeem;
     let rawTx = inObj.dataset.uid;
     rawTx = rawTx.length > 20 ? rawTx : '';
@@ -54,7 +56,12 @@ async function psbt_addInput(inObj) {
         case '1'://P2PKH
             if (rawTx == '') {
                 try {
-                    let rawHex = await getTxDetail(txHash, isTestNet_bitcoin, true);
+                    let rawHex;
+                    if (cryptoType == 0) {//比特币
+                        rawHex = await getTxDetail(txHash, bitcoin_network != bitcoin.networks.bitcoin, true);
+                    } else {//莱特币
+                        rawHex = await litecoin_getTxDetail(txHash, litecoin_network == litecoinTestnet, true);
+                    }
                     psbt.addInput({
                         hash: txHash,
                         index: output_index,
@@ -77,7 +84,12 @@ async function psbt_addInput(inObj) {
         case '2'://P2SH
             if (rawTx == '') {
                 try {
-                    let rawHex = await getTxDetail(txHash, isTestNet_bitcoin, true);
+                    let rawHex;
+                    if (cryptoType == 0) {//比特币
+                        rawHex = await getTxDetail(txHash, bitcoin_network != bitcoin.networks.bitcoin, true);
+                    } else {//莱特币
+                        rawHex = await litecoin_getTxDetail(txHash, litecoin_network == litecoinTestnet, true);
+                    }
                     psbt.addInput({
                         hash: txHash,
                         index: output_index,
@@ -102,20 +114,26 @@ async function psbt_addInput(inObj) {
         case '3'://P2WPKH
             if (rawTx == '') {
                 try {
-                    let rawHex = await getTxDetail(txHash, network != bitcoin.networks.bitcoin, true);
-                    let prevTx = bitcoin.Transaction.fromHex(rawHex);
+                    /*                  let rawHex;                    
+                                        if (cryptoType == 0) {//比特币
+                                            rawHex = await getTxDetail(txHash, bitcoin_network != bitcoin.networks.bitcoin, true);
+                                        } else {//莱特币
+                                            rawHex = await litecoin_getTxDetail(txHash, litecoin_network == litecoinTestnet, true);
+                                        }
+                                        let prevTx = bitcoin.Transaction.fromHex(rawHex);
+                    */
                     psbt.addInput({
                         hash: txHash,
                         index: output_index,
                         sequence: sequence,
                         witnessUtxo: {
-                            script: prevTx.outs[output_index].script,
-                            value: prevTx.outs[output_index].value
+                            script: bitcoin.address.toOutputScript(address, cryptoType == 0 ? bitcoin_network : litecoin_network),
+                            value: value
                         }
                     });
                 } catch (error) {
                     canFetchRawTX = false;
-                    alert('Failed to get raw transaction data:', error);
+                    alert(`Failed to get raw transaction data: ${error}`);
                 }
             } else {//Offline
                 let prevTx = bitcoin.Transaction.fromHex(rawTx);
@@ -133,7 +151,14 @@ async function psbt_addInput(inObj) {
         case '4'://P2WSH
             if (rawTx == '') {
                 try {
-                    let rawHex = await getTxDetail(txHash, network != bitcoin.networks.bitcoin, true);
+                    let rawHex;
+                    if (cryptoType == 0) {//比特币
+                        rawHex = await getTxDetail(txHash, bitcoin_network != bitcoin.networks.bitcoin, true);
+                    } else if (cryptoType == 3) {
+                        rawHex = await dogecoin_getTxDetail(txHash, dogecoin_network == dogecoinTestnet, true);
+                    } else {
+                        rawHex = await litecoin_getTxDetail(txHash, litecoin_network == litecoinTestnet, true);
+                    }
                     let prevTx = bitcoin.Transaction.fromHex(rawHex);
                     psbt.addInput({
                         hash: txHash,
@@ -167,7 +192,12 @@ async function psbt_addInput(inObj) {
             //Key path:
             if (rawTx == '') {
                 try {
-                    let rawHex = await getTxDetail(txHash, network != bitcoin.networks.bitcoin, true);
+                    let rawHex;
+                    if (cryptoType == 0) {//比特币
+                        rawHex = await getTxDetail(txHash, bitcoin_network != bitcoin.networks.bitcoin, true);
+                    } else {//莱特币
+                        rawHex = await litecoin_getTxDetail(txHash, litecoin_network == litecoinTestnet, true);
+                    }
                     let prevTx = bitcoin.Transaction.fromHex(rawHex);
                     psbt.addInput({
                         hash: txHash,
@@ -198,8 +228,49 @@ async function psbt_addInput(inObj) {
             }
             //Script path:
             break;
+        case '6'://P2SH-P2WPKH
+            const p2wpkh = bitcoin.payments.p2wpkh({ pubkey: Buffer.Buffer.from(redeem_script, 'hex'), network: cryptoType == 0 ? network : litecoin_network });
+
+            const p2sh_p2wpkh = bitcoin.payments.p2sh({ redeem: p2wpkh, network: cryptoType == 0 ? network : litecoin_network });
+            if (rawTx == '') {
+                try {
+                    let rawHex;
+                    if (cryptoType == 0) {//比特币
+                        rawHex = await getTxDetail(txHash, bitcoin_network != bitcoin.networks.bitcoin, true);
+                    } else {//莱特币
+                        rawHex = await litecoin_getTxDetail(txHash, litecoin_network == litecoinTestnet, true);
+                    }
+                    let prevTx = bitcoin.Transaction.fromHex(rawHex);
+                    psbt.addInput({
+                        hash: txHash,
+                        index: output_index,
+                        sequence: sequence,
+                        witnessUtxo: {
+                            script: p2sh_p2wpkh.output,
+                            value: prevTx.outs[output_index].value,
+                        },
+                        redeemScript: p2sh_p2wpkh.redeem.output,
+                    });
+                } catch (error) {
+                    canFetchRawTX = false;
+                    alert('Failed to get raw transaction data:', error);
+                };
+            } else {//Offline
+                let prevTx = bitcoin.Transaction.fromHex(rawTx);
+                psbt.addInput({
+                    hash: txHash,
+                    index: output_index,
+                    sequence: sequence,
+                    witnessUtxo: {
+                        script: p2sh_p2wpkh.output,
+                        value: prevTx.outs[output_index].value,
+                    },
+                    redeemScript: p2sh_p2wpkh.redeem.output,
+                });
+            }
+            break;
         default://Bitcoin test address
-            alert('Wallet types other than P2PK, P2PKH, P2SH, P2WPKH, P2WSH, and P2TR cannot be processed at this time!');
+            alert('Wallet types other than P2PK, P2PKH, P2SH, P2WPKH, P2WSH, P2SH-P2WPKH, and P2TR cannot be processed at this time!');
             return;
     }
     //    console.log(`${txHash}-${output_index}-${sequence}`);
@@ -207,34 +278,52 @@ async function psbt_addInput(inObj) {
 
 //Get UTXOs for an address:
 async function getUtxo(address, isTestNetwork) {
-/*
-For testnet:
-https://blockstream.info/testnet/api/address/{address}/utxo
-https://sochain.com/api/v2/get_tx_unspent/BTCTEST/{address}
-https://api.blockcypher.com/v1/btc/test3/addrs/{address}?unspentOnly=true
-
-For mainnet:
-https://api.blockcypher.com/v1/btc/main/addrs/{address}?unspentOnly=true
-https://blockstream.info/api/address/{address}/utxo
-*/
+    /*
+    For testnet:
+    https://blockstream.info/testnet/api/address/{address}/utxo
+    https://sochain.com/api/v2/get_tx_unspent/BTCTEST/{address}
+    https://api.blockcypher.com/v1/btc/test3/addrs/{address}?unspentOnly=true
+    
+    For mainnet:
+    https://api.blockcypher.com/v1/btc/main/addrs/{address}?unspentOnly=true
+    https://blockstream.info/api/address/{address}/utxo
+    */
     isTestNetwork = isTestNetwork || false;
-    let url1 = `https://api.blockcypher.com/v1/btc/main/addrs/${address}?unspentOnly=true`;
-    if (isTestNetwork) {//Test address
-        url1 = `https://api.blockcypher.com/v1/btc/test3/addrs/${address}?unspentOnly=true`;
+    let url = `https://api.blockcypher.com/v1/btc/main/addrs/${address}?unspentOnly=true`;
+    if (isTestNetwork) {//测试地址
+        url = `https://api.blockcypher.com/v1/btc/test3/addrs/${address}?unspentOnly=true`;
     }
-    //To query balance: https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance
-    const response = await fetch(url1);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    //要查询余额https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance
+    let response = await fetch(url);
+    let utxos = {};
+    if (response.ok) {
+        utxos = await response.json();
     }
-    return await response.json();
+    let utxos1 = [];
+    if (!utxos.txrefs) {
+        url = `https://blockstream.info/api/address/${address}/utxo`;
+        if (isTestNetwork) {//测试地址
+            url = `https://blockstream.info/testnet/api/address/${address}/utxo`;
+        }
+        response = await fetch(url);
+        utxos1 = await response.json();
+        utxos.txrefs = [];
+    }
+    utxos1.forEach(utxo => {
+        utxos.txrefs.push({
+            tx_hash: utxo.txid,
+            tx_output_n: utxo.vout,
+            value: utxo.value
+        })
+    });
+    return utxos;
 }
 
 //Check if a Bitcoin address is valid:
-function isValidBitcoinAddress(address, network = network) {
+function isValidAddress(address, bitcoin_network = bitcoin_network) {
     try {
         // Try to decode the address
-        bitcoin.address.toOutputScript(address, network);
+        bitcoin.address.toOutputScript(address, bitcoin_network);
         return true; // If successful, address is valid
     } catch (e) {
         return false; // If failed, address is invalid
@@ -255,31 +344,31 @@ function recover_wallet() {
     let path1 = document.getElementById('path').value.trim();
     const reg_path = /([0-9]+)'\/([01])\/([0-9]+)$/;
     if (!reg_path.test(path1)) {
-        alert("钱包路径不对，格式是“i'/0或者1/j”，i,j取值范围[0,2147483647]");
+        alert("The wallet path is incorrect, the format is `m'/0 or 1/n`, where i, j range from [0, 2147483647].");
         return;
     }
     //    var rootNode;
     if (hd_more.rood_ext_key != '') {//Recover HD wallet rootNode from root extended private key
         const customNetwork = {
-            ...network, // Inherit mainnet configuration. By default, only supports xprv(0x0488ade4), not yprv(0x049d7878) and zprv(0x04b2430c).
+            ...bitcoin_network, // Inherit mainnet configuration. By default, only supports xprv(0x0488ade4), not yprv(0x049d7878) and zprv(0x04b2430c).
             bip32: {
-                public: network == bitcoin.networks.bitcoin ? 0x04b24746 : 0x045f18bc, // zpub : version bytes for vprv
-                private: network == bitcoin.networks.bitcoin ? 0x04b2430c : 0x045f1cf6, // zprv : version bytes for vpub
+                public: bitcoin_network == bitcoin.networks.bitcoin ? 0x04b24746 : 0x045f18bc, // zpub : version bytes for vprv
+                private: bitcoin_network == bitcoin.networks.bitcoin ? 0x04b2430c : 0x045f1cf6, // zprv : version bytes for vpub
             },
         };
         rootNode = bip32.BIP32Factory(bitcoinerlabsecp256k1).fromBase58(hd_more.rood_ext_key, customNetwork);
         let keypath = wallets.path.slice(0, 11);
         let account_pri = rootNode.derivePath(keypath).toBase58();
-        let zprv_vprv = network == bitcoin.networks.bitcoin ? '04b2430c' : '045f18bc';
+        let zprv_vprv = bitcoin_network == bitcoin.networks.bitcoin ? '04b2430c' : '045f18bc';
         account_ext_privatekey = bs58ec(account_pri, zprv_vprv);
         hd_more.seed = 'Cannot derive seed from root extended private key';
         document.getElementById('mnemonic').value = 'Cannot derive mnemonic from root extended private key';
     } else if (hd_more.seed != '') {//Recover HD wallet root node rootNode from seed
         let seed = Buffer.Buffer.from(hd_more.seed, 'hex');
-        let rootNode = bip32.BIP32Factory(bitcoinerlabsecp256k1).fromSeed(seed, network);
+        let rootNode = bip32.BIP32Factory(bitcoinerlabsecp256k1).fromSeed(seed, bitcoin_network);
         let keypath = wallets.path.slice(0, 11);
         let account_pri = rootNode.derivePath(keypath).toBase58();
-        let zprv_vprv = network == bitcoin.networks.bitcoin ? '04b2430c' : '045f18bc';
+        let zprv_vprv = bitcoin_network == bitcoin.networks.bitcoin ? '04b2430c' : '045f18bc';
         account_ext_privatekey = bs58ec(account_pri, zprv_vprv);
 
         let root_ext_peivateKey = rootNode.toBase58();//BIP44 root extended private key
@@ -292,8 +381,41 @@ function recover_wallet() {
             alert("Invalid mnemonic!");
             return;
         }
+
+        if (document.getElementById('purpose').value == '49') {//m/49'/……
+            const seed = bip39.mnemonicToSeedSync(wallets.mnemonic, document.getElementById('seed_password').value.trim());
+            const root = bip32.BIP32Factory(bitcoinerlabsecp256k1).fromSeed(seed, bitcoin_network);
+            const child = root.derivePath(wallets.path);
+            const witnessScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_0,
+                bitcoin.crypto.hash160(child.publicKey)
+            ]);
+
+            const redeemScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_HASH160,
+                bitcoin.crypto.hash160(witnessScript),
+                bitcoin.opcodes.OP_EQUAL
+            ]);
+
+            const p2sh_p2wpkh_Address = bitcoin.address.fromOutputScript(redeemScript, bitcoin_network);
+            document.getElementById('seed').value = seed.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+            document.getElementById('root_privatekey').value = root.toBase58();
+            document.getElementById('view_wallet').innerHTML = `
+            1. Mnemonic: ${wallets.mnemonic}<br>      
+            2. Password: ${document.getElementById('seed_password').value.trim()}<br>
+            3. Path: ${wallets.path}<br>
+            4. Wallet
+            <table>
+              <tr style="line-height: 1.2rem;">
+                <td style="text-align: right;  width: 140px">Private Key (WIF):<br>Compressed Public Key:<br>P2SH-P2WPKH Address:</td>
+                <td>${child.toWIF()}<br>${child.publicKey.toString('hex')}<br>${p2sh_p2wpkh_Address}</td>
+              </tr>
+            </table>`;
+            return;
+        }
+
         wallets.seed_password = document.getElementById('seed_password').value.trim();
-        rootNode = new bip84.fromMnemonic(wallets.mnemonic, wallets.seed_password, isTestNet_bitcoin, null, null, null, bitcoin_language);
+        rootNode = new bip84.fromMnemonic(wallets.mnemonic, wallets.seed_password, bitcoin_isTestNet, null, null, null, bitcoin_language);
         hd_more.seed = rootNode.seed.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
         hd_more.rood_ext_key = rootNode.getRootPrivateKey();
         account_ext_privatekey = rootNode.deriveAccount(parseInt(path1.split("'")[0]));
@@ -305,25 +427,25 @@ function recover_wallet() {
     var account = new bip84.fromZPrv(account_ext_privatekey);
     let pri = account.getPrivateKey(parseInt(path1.split('/')[2]), path1.split('/')[1] == '1');
     let pub = account.getPublicKey(parseInt(path1.split('/')[2]), path1.split('/')[1] == '1');
-    let addr_p2wpkh = account.getAddress(parseInt(path1.split('/')[2]), path1.split('/')[1]=='1');
+    let addr_p2wpkh = account.getAddress(parseInt(path1.split('/')[2]), path1.split('/')[1] == '1');
 
     hd_more.accPri = account.getAccountPrivateKey();
     hd_more.accPub = account.getAccountPublicKey();
 
     //    const network = bitcoin.networks.bitcoin;
     //    const ECPair = ecpair.ECPairFactory(bitcoinerlabsecp256k1);
-    const keyPair = ECPair.fromWIF(pri, network);
+    const keyPair = ECPair.fromWIF(pri, bitcoin_network);
     //    let compress_publicKey = keyPair.publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-    //    const { address: addr_p2pk } = bitcoin.payments.p2pk({ pubkey: keyPair.publicKey, network: network});
+    //    const { address: addr_p2pk } = bitcoin.payments.p2pk({ pubkey: keyPair.publicKey, network: bitcoin_network});
     let schnorrPubKey = bitcoinerlabsecp256k1.xOnlyPointFromScalar(keyPair.privateKey);//Generate Schnorr public key
     schnorrPubKey = schnorrPubKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
 
-    const { address: addr_p2pkh } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: network });
+    const { address: addr_p2pkh } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: bitcoin_network });
     //    const { address: address_p2wpkh } = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey });
     //const { address: addr_p2sh } = bitcoin.payments.p2sh({ redeem: bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey }) });
 
     //    const toXOnly = pubKey => (pubKey.length === 32 ? pubKey : pubKey.slice(1, 33));
-    const { address: addr_p2tr } = bitcoin.payments.p2tr({ internalPubkey: Buffer.Buffer.from(toXOnly(keyPair.publicKey)), network: network });
+    const { address: addr_p2tr } = bitcoin.payments.p2tr({ internalPubkey: Buffer.Buffer.from(toXOnly(keyPair.publicKey)), network: bitcoin_network });
 
     document.getElementById('seed').value = hd_more.seed;
     document.getElementById('root_privatekey').value = hd_more.rood_ext_key;
@@ -342,7 +464,7 @@ function recover_wallet() {
     document.getElementById('prompt').style.visibility = 'visible';
     document.getElementById('view_account_pri').removeAttribute('disabled');
     document.getElementById('view_more').innerHTML = '';
-} 
+}
 
 function checkEnv() {
     alarm_str = "";
@@ -368,10 +490,10 @@ function checkEnv() {
 }
 
 async function getTxDetail(txHash, isTestNetwork, isRaw) {
-/*
-For testnet:
-https://api.blockcypher.com/v1/btc/test3/txs/{txid}?includeHex=true
-*/
+    /*
+    For testnet:
+    https://api.blockcypher.com/v1/btc/test3/txs/{txid}?includeHex=true
+    */
     isTestNetwork = isTestNetwork || false;
     isRaw = isRaw || false;
     let url = '';
@@ -409,11 +531,10 @@ function storage_data(storage_data) {
     document.getElementById('tx_he_type').dispatchEvent(new Event('change'));
 }
 
-function view_tx(tx_hash) {
-    doing.querySelector('p').innerText = 'Please wait, fetching...'
-    doing.showModal();
+async function view_tx(tx_hash) {
+    await openModal('Please wait, fetching...');
     const reg = new RegExp(`.{1,${70}}`, 'g');
-    getTxDetail(tx_hash, network != bitcoin.networks.bitcoin, false).then((ret) => {
+    getTxDetail(tx_hash, bitcoin_network != bitcoin.networks.bitcoin, false).then((ret) => {
         let dialog = document.getElementById('wallet_dialog');
         dialog.querySelector('h3').innerHTML = `Query Transaction: ${tx_hash}`;
         dialog.querySelector('p').innerHTML = `Total amount: ${ret.total} satoshis, Transaction fee: ${ret.fees} satoshis, Date: ${ret.confirmed}`;
@@ -471,8 +592,12 @@ function view_tx(tx_hash) {
         dialog.querySelector('#tx_hd2').innerHTML = `${ret.outputs.length} outputs`;
         dialog.querySelector('#tx_td3').innerHTML = td1;
         dialog.querySelector('#tx_td4').innerHTML = td2;
-        doing.close();
+        document.getElementById('view_raw_tx').style.visibility = 'visible';
+        closeModal();
         dialog.showModal();
+    }).catch(err => {
+        alert(err);
+        closeModal();
     });
     //    console.log(tx_hash);
 }
@@ -482,110 +607,46 @@ function calculate_redeem_script(pubKeys) {
     let pubKeys_arr = pubKeys.map(hex => Buffer.Buffer.from(hex, 'hex')).sort((a, b) => a.compare(b));//Must be sorted from small to large
     if (pubKeys_arr.length < 2) { return };
     let signs = parseInt(document.getElementById('signs').value);
-    let redeem_script = bitcoin.payments.p2ms({ m: signs, pubkeys: pubKeys_arr, network: network });
+    let redeem_script = bitcoin.payments.p2ms({ m: signs, pubkeys: pubKeys_arr, network: bitcoin_network });
     document.getElementById('get_multi_redeem').value = bitcoin.script.toASM(redeem_script.output);
 }
 
-/**
+/*
  * Calculate Bitcoin address from output script
- * @param {string} scriptPubKeyHex - Output script (hexadecimal)
+ * @param {string} outputScript - Output script (hexadecimal)
  * @param {boolean} isMainnet - Is it Bitcoin mainnet?
  * @returns {string} Calculated Bitcoin address
  */
-function output2address(scriptPubKeyHex, isMainnet) {
-    const scriptPubKey = Buffer.Buffer.from(scriptPubKeyHex, "hex");
-
-    // Set network parameters
-    //    isMainnet = isMainnet||true;
-    const p2pkhPrefix = isMainnet ? 0x00 : 0x6F;
-    const p2shPrefix = isMainnet ? 0x05 : 0xC4;
-    const hrp = isMainnet ? "bc" : "tb";  // Human-readable part for Bech32 / Bech32m
-
-    // **P2PKH (1 / m prefix)**
-    if (scriptPubKey.length === 25 && scriptPubKey[0] === 0x76 && scriptPubKey[1] === 0xa9) {
-        const pubKeyHash = scriptPubKey.slice(3, 23);
-        return bs58check.default.encode(Buffer.Buffer.concat([Buffer.Buffer.from([p2pkhPrefix]), pubKeyHash]));
-    }
-
-    // **P2SH (3 / 2 prefix)**
-    if (scriptPubKey.length === 23 && scriptPubKey[0] === 0xa9) {
-        const scriptHash = scriptPubKey.slice(2, 22);
-        return bs58check.default.encode(Buffer.Buffer.concat([Buffer.Buffer.from([p2shPrefix]), scriptHash]));
-    }
-
-    // **P2WPKH (bc1q / tb1q prefix)**
-    if (scriptPubKey.length === 22 && scriptPubKey[0] === 0x00) {
-        const decoded = bitcoin.script.decompile(scriptPubKey);
-        return bitcoin.address.toBech32(decoded[1],0,hrp);
-//        const pubKeyHash = scriptPubKey.slice(2, 22);
-//        return bech32.bech32.encode(hrp, bech32.bech32.toWords(pubKeyHash));
-    }
-
-    // **P2WSH (bc1q / tb1q prefix): Must be 34 bytes long with prefix `0020`
-    if (scriptPubKey.length === 34 && scriptPubKey[0] === 0x00 && scriptPubKey[1] === 0x20) {
-        const pubKeyHash = scriptPubKey.slice(2, 34);
-        const version = scriptPubKey[0];
-        const words = [version, ...bech32.bech32.toWords(pubKeyHash)];
-        return bech32.bech32.encode(hrp, words);
-    }
-
-    // **P2TR (bc1p / tb1p prefix)**
-    if (scriptPubKey.length === 34 && scriptPubKey[0] === 0x51 && scriptPubKey[1] === 0x20) {
-        const version = 1;
-        const taprootPubKey = scriptPubKey.slice(2, 34); // 32-byte X-only public key
-        const words = [version, ...bech32.bech32m.toWords(taprootPubKey)];
-        return bech32.bech32m.encode(hrp, words);
-    }
-
-    // **OP_RETURN stored data**
-    if (scriptPubKey[0] === 0x6a) {
-        return Buffer.Buffer.from(scriptPubKeyHex.slice(4), 'hex').toString('utf8');
-    }
-
-    throw new Error("Unsupported scriptPubKey format");
+function output2address(outputScript, network) {
+    const script = Buffer.Buffer.from(outputScript, "hex");
+    return bitcoin.address.fromOutputScript(script, network);
 }
-//output2address("a9142317615750b647f0a84de52dd62748a328d6006087", true);//P2SH address
-
 
 async function broadcastTransaction(tx_hex) {
-    doing.querySelector('p').innerText = 'Please wait, broadcasting...'
-    doing.showModal();
-    //        const apiUrl = network == bitcoin.networks.bitcoin ? 'https://blockstream.info/api/tx' : 'https://blockstream.info/testnet/api/tx';
+    await openModal('Please wait, broadcasting...');
+    //        const apiUrl = bitcoin_network == bitcoin.networks.bitcoin ? 'https://blockstream.info/api/tx' : 'https://blockstream.info/testnet/api/tx';
     let dis = document.getElementById('dispatch_result');
     dis.innerHTML = '';
 
-    const apiUrl = network == bitcoin.networks.bitcoin ? 'https://blockstream.info/api' : 'https://blockstream.info/testnet/api';
+    const apiUrl = bitcoin_network == bitcoin.networks.bitcoin ? 'https://blockstream.info/api' : 'https://blockstream.info/testnet/api';
     const blockstream = new axios.Axios({ baseURL: apiUrl });
     blockstream.post('/tx', tx_hex).then(response => {
         if (response.status == 200) {
             document.getElementById('dispatch_tx').setAttribute('disabled', '');
-            let url2 = network == bitcoin.networks.bitcoin ? 'https://blockstream.info/' : 'https://blockstream.info/testnet';
+            let url2 = bitcoin_network == bitcoin.networks.bitcoin ? 'https://blockstream.info/' : 'https://blockstream.info/testnet';
             dis.innerHTML = `Transaction broadcast successful!<br>Transaction ID: ${response.data}<br>
             You can check if the transaction is completed in a few minutes at &nbsp;<a href="${url2}" target="_blank">${url2}</a>.`;
         } else {
             dis.innerHTML = `Transaction broadcast failed!<br>Error message: ${response.data}<br>Please check if the network can access the internet, or verify the "Bitcoin Network" selection in the top right corner of the screen.`;
         }
+//        dis.parentNode.style.visibility = "visible";
+        closeModal();
     }).catch(error => {
         dis.innerHTML = `Transaction broadcast failed!<br>${error.response ? error.response.data : error.message}, you can try again later or copy to another website to broadcast.`;
+        closeModal();
     });
-    /*
-            const apiUrl = network == bitcoin.networks.bitcoin ? 'https://api.blockcypher.com/v1/btc/main/txs/push' : 'https://api.blockcypher.com/v1/btc/test3/txs/push';
-            try {
-                const response = await axios.post(apiUrl, hex, {
-                    headers: {
-                        'Content-Type': 'text/plain', // Set request header
-                    },
-                });
-                document.getElementById('dispatch_tx').setAttribute('disabled', '');
-                dis.innerHTML = `Transaction broadcast successful!<br>Transaction ID: ${response.data}<br>You can check if the transaction is completed in a few minutes at https://blockchair.com/zh.`;
-            } catch (error) {
-                dis.innerHTML = `Transaction broadcast failed!<br>${error.response ? error.response.data : error.message}, you can try again later.`;
-            }
-    */
-    dis.parentNode.style.visibility = 'visible';
     document.getElementById('dispatch_tx').removeAttribute('disabled');
-    doing.close();
-}
+} 
 
 function decToHex(num, len) {//Convert decimal integer num to len-digit hexadecimal little-endian format
     return (num + 2 ** (len * 4)).toString(16).match(/\B../g).reverse().join``;
@@ -602,6 +663,9 @@ function openModal(tips) {
     document.body.style.width = '100%';
     doing.querySelector('p').innerText = tips
     doing.showModal();
+    return new Promise(resolve => {
+        setTimeout(resolve, 50);
+    });
 }
 
 function closeModal() {
@@ -676,7 +740,7 @@ function string2MerkleTree(merkleString) {
     return merkleTree;
 }
 
-async function encryptMessage(message, password) {
+async function encryptMessage(msgBytes, password) {
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
     const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -710,7 +774,7 @@ async function encryptMessage(message, password) {
             iv: iv
         },
         key,
-        encoder.encode(message)
+        msgBytes
     );
 
     const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
@@ -724,7 +788,7 @@ async function encryptMessage(message, password) {
 async function decryptMessage(encryptedData, password) {
     const salt = encryptedData.slice(0, 16);
     const iv = encryptedData.slice(16, 28);
-    const data = encryptedData.slice(28);
+    const data = encryptedData.slice(28);//encrypted data
 
     const encoder = new TextEncoder();
     const passwordBuffer = encoder.encode(password);
@@ -750,7 +814,7 @@ async function decryptMessage(encryptedData, password) {
         ['decrypt']
     );
 
-    const decrypted = await crypto.subtle.decrypt(
+    const decrypted = await crypto.subtle.decrypt(//return ArrayBuffer
         {
             name: 'AES-GCM',
             iv: iv
@@ -759,17 +823,22 @@ async function decryptMessage(encryptedData, password) {
         data
     );
 
-    return new TextDecoder().decode(decrypted);
+    return new Uint8Array(decrypted);
 }
 
-async function hideEncryptedMessageInImage(imageElement, message, password) {
-    const encryptedData = await encryptMessage(message, password);
+async function hideEncryptedMessageInImage(imageElement, msgBytes, password) {
+    let encryptedData;
+    if (password === "") {
+        encryptedData = msgBytes;
+    } else {
+        // 加密消息
+        encryptedData = await encryptMessage(msgBytes, password);
+    }
 
     let msgBits = '';
     for (const byte of encryptedData) {
         msgBits += byte.toString(2).padStart(8, '0');
     }
-    console.log(msgBits);
     const msgTotalBits = msgBits.length.toString(2).padStart(32, '0') + msgBits;
 
     const canvas = document.createElement('canvas');
@@ -781,11 +850,13 @@ async function hideEncryptedMessageInImage(imageElement, message, password) {
     var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     if (msgTotalBits.length > imageData.data.length * 3 / 4) {
-        throw new Error('被隐写的信息太多！');
+        throw new Error('There is too much information being hidden!');
     }
 
     encodeMessage(imageData.data, msgTotalBits);
+
     ctx.putImageData(imageData, 0, 0);
+
     return new Promise((resolve) => {
         canvas.toBlob(resolve, 'image/png');
     });
@@ -810,12 +881,14 @@ async function extractEncryptedMessageFromImage(imageElement, password) {
     ctx.drawImage(imageElement, 0, 0);
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  
+
     const encryptedData = decodeMessage(imageData.data);
+    if (password === "") {
+        return encryptedData;
+    }
 
     try {
-        const decrypted = await decryptMessage(encryptedData, password);
-        return decrypted;
+        return await decryptMessage(encryptedData, password);
     } catch (error) {
         throw new Error('Decryption failed - wrong password or corrupted data');
     }
@@ -842,11 +915,11 @@ function decodeMessage(imgPixels) {
     }
     const encryptedData = new Uint8Array(msgBits.length / 8);
     for (let i = 0; i < msgBits.length; i += 8) {
-        encryptedData[i / 8] = parseInt(msgBits.slice(i, i+8), 2);
+        encryptedData[i / 8] = parseInt(msgBits.slice(i, i + 8), 2);
     }
     return encryptedData;
 }
-/**
+/*
  * 从共享密钥派生AES密钥
  * @param {Buffer} sharedSecret 
  * @returns {Promise<CryptoKey>}
@@ -875,7 +948,7 @@ async function deriveAesKey(sharedSecret) {
     );
 }
 
-/**
+/*
  * 格式化字节大小
  * @param {number} bytes 
  * @returns {string}
@@ -888,41 +961,6 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-async function openPage() {
-    //根据用户上次选择的语言：
-    lang = localStorage.getItem('lang');
-    if (lang) {
-        return;
-    } 
-
-    try {
-        //根据地理位置：
-        let response = await fetch('https://ipapi.co/json/');
-        let data = await response.json();
-        const countryCode = data.country;
-        const langMap = {
-            'CN': 'zh',
-            'TW': 'zh',
-            'US': 'en',
-            'GB': 'en',
-            // 'FR': 'fr',
-            // 'ES': 'es',
-            // 'JP': 'ja',
-            // 'KR': 'ko',
-            // 'SA': 'ar',
-            // 'AE': 'ar',
-            'AU': 'en',
-            // 添加更多国家映射
-        };
-        lang = langMap[countryCode] || 'en'; // 默认英语
-        console.log(lang);
-    } catch (err) {
-        //根据浏览器的语言：
-        let userLang = navigator.language || navigator.userLanguage;
-        lang = userLang.split('-')[0].toLowerCase();
-    }
-}
-
 function triggerDownload(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -933,4 +971,34 @@ function triggerDownload(blob, filename) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+function witnessStackToScriptWitness(witness) {
+    let buffer = Buffer.Buffer.allocUnsafe(0)
+
+    function writeSlice(slice) {
+        buffer = Buffer.Buffer.concat([buffer, Buffer.Buffer.from(slice)])
+    }
+
+    function writeVarInt(i) {
+        const currentLen = buffer.length;
+        const varintLen = varuintBitcoin.encodingLength(i)
+
+        buffer = Buffer.Buffer.concat([buffer, Buffer.Buffer.allocUnsafe(varintLen)])
+        varuintBitcoin.encode(i, buffer, currentLen)
+    }
+
+    function writeVarSlice(slice) {
+        writeVarInt(slice.length)
+        writeSlice(slice)
+    }
+
+    function writeVector(vector) {
+        writeVarInt(vector.length)
+        vector.forEach(writeVarSlice)
+    }
+
+    writeVector(witness)
+
+    return buffer
 }

@@ -16,39 +16,58 @@ window.addEventListener("load", (evt) => {
         window.open(location.origin + pathname + '/index.html', '_self');
     })
 
-    document.getElementById('choose_net').addEventListener('click', (ev) => {
-        isTestNet_bitcoin = true;
-        switch (parseInt(document.getElementById('bitcoin_gloabal_pars').querySelector('select').value)) {
-            case 0: network = bitcoin.networks.bitcoin;
-                isTestNet_bitcoin = false;
+    document.getElementById('bitcoin_configure_network').addEventListener('change', (ev) => {
+        bitcoin_isTestNet = true;
+        let t = document.getElementById('test_or_main');
+        t.value = "1";
+        switch (parseInt(ev.target.value)) {
+            case 0: bitcoin_network = bitcoin.networks.bitcoin;
+                bitcoin_isTestNet = false;
+                t.value = "0";
                 break;
-            case 1: network = bitcoin.networks.testnet;
+            case 1: bitcoin_network = bitcoin.networks.testnet;
                 break;
-            case 2: network = bitcoin.networks.regtest;
+            case 2: bitcoin_network = bitcoin.networks.regtest;
                 break;
             default: break;
         }
-        wallets.path = `m/84'/${isTestNet_bitcoin ? '1' : '0'}${wallets.path.slice(7)}`;
-        switch (document.getElementById('grobal_pars_language').value) {
+        wallets.path = `m/84'/${bitcoin_isTestNet ? '1' : '0'}${wallets.path.slice(7)}`;
+    })
+
+    document.getElementById('bitcoin_configure_rate').addEventListener('blur', (ev) => {
+        bitcoin_rate = parseFloat(ev.target.value.trim());
+    });
+
+    document.getElementById('bitcoin_configure_fee').addEventListener('blur', (ev) => {
+        bitcoin_fee_dollars = parseFloat(ev.target.value.trim());
+        bitcoin_fee_satoshi = Math.round(bitcoin_fee_dollars / bitcoin_rate * 100000000);
+        //        document.getElementById('bitcoin_fee_satoshi').innerText = bitcoin_fee_satoshi;
+        let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
+        let totalAmount = document.getElementById('tx_amount').innerText.replace(/,/g, '');
+        let tx_fee = parseInt(totalAmount) - parseInt(toOut);
+        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
+        document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
+        document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
+        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
+    });
+
+    document.getElementById('bitcoin_configure_language').addEventListener('change', (ev) => {
+        switch (ev.target.value) {
             case 'cn':
                 bitcoin_language = bip39.wordlists.chinese_simplified;
-                ethereum_language = wordlistsExtra.LangZh.wordlist("cn");
+                //                bitcoin_language = solcoin_language = bip39.wordlists.chinese_simplified;
                 break;
             case 'tw':
                 bitcoin_language = bip39.wordlists.chinese_traditional;
-                ethereum_language = wordlistsExtra.LangZh.wordlist("tw");
                 break;
             case 'ja':
                 bitcoin_language = bip39.wordlists.japanese;
-                ethereum_language = wordlistsExtra.LangJa.wordlist("ja");
                 break;
             case 'es':
                 bitcoin_language = bip39.wordlists.spanish;
-                ethereum_language = wordlistsExtra.LangEs.wordlist("es");
                 break;
             case 'fr':
                 bitcoin_language = bip39.wordlists.french;
-                ethereum_language = wordlistsExtra.LangFr.wordlist("fr");
                 break;
             case 'it':
                 bitcoin_language = bip39.wordlists.italian;
@@ -67,50 +86,113 @@ window.addEventListener("load", (evt) => {
                 ethereum_language = wordlistsExtra.LangCz.wordlist("cz");
                 break;
             default:
-                bitcoin_language = bip39.wordlists.english;
+                bitcoin_languagee = bip39.wordlists.english;
                 ethereum_language = ethers.wordlists.en;
                 break;
         }
+    });
 
-        bitcoin_rate = parseFloat(document.getElementById('bitcoin_gloabal_pars').querySelector('input').value.trim());
-        fee = Math.ceil(100000000 / bitcoin_rate) * fee_dollars;
-        document.getElementById('fee').innerText = fee;
-        document.getElementById('fee_dollars').innerText = fee_dollars;
-        document.getElementById('cover_crypto').style.visibility = 'visible';
-        isTestNet_ethereum = document.getElementById('ethereum_gloabal_pars').querySelector('select').value == 0 ? false : true;
-        ethereum_rate = parseFloat(document.getElementById('ethereum_gloabal_pars').querySelector('input').value.trim());
-        document.getElementById('configure_global_parameters').style.visibility = "hidden";
-
-        let txHash = isTestNet_bitcoin ? "ffb32fbe3b0e260e38e82025d7dcf72a24feb3da455445015aaf8b8f9c9da68f" : "c6e81c4a315d7eed40cb32b2558f4b142d37959f7e8eb3eb5c43fdf2931cca42";
-        getTxDetail(txHash, isTestNet_bitcoin, true).then((rawHex) => {
-            if (rawHex.length > 20) {
-                let address = isTestNet_bitcoin ? "tb1qng6f35spexs5nr80enz3a76kuz5s9m20um22xx" : "bc1qd9k6d3jzaqsc3rvm039cae6y2v8sm2hlg6ucv6";
-                getUtxo(address, isTestNet_bitcoin).then((ret) => {
-                    canFetchRawTX = true;
-                })
+    /*
+        document.getElementById('choose_net').addEventListener('click', (ev) => {
+            bitcoin_isTestNet = true;
+            switch (parseInt(document.getElementById('bitcoin_gloabal_pars').querySelector('select').value)) {
+                case 0: bitcoin_network = bitcoin.networks.bitcoin;
+                    bitcoin_isTestNet = false;
+                    break;
+                case 1: bitcoin_network = bitcoin.networks.testnet;
+                    break;
+                case 2: bitcoin_network = bitcoin.networks.regtest;
+                    break;
+                default: break;
             }
-        }).catch(err => {
-            canFetchRawTX = false;
-        });
-    })
-
-    document.getElementById('bitcoin_new_language').addEventListener('change', (evt) => {
-        switch (evt.target.value) {
-            case 'cn': bitcoin_language = bip39.wordlists.chinese_simplified; break;
-            case 'tw': bitcoin_language = bip39.wordlists.chinese_traditional; break;
-            case 'ja': bitcoin_language = bip39.wordlists.japanese; break;
-            case 'es': bitcoin_language = bip39.wordlists.spanish; break;
-            case 'fr': bitcoin_language = bip39.wordlists.french; break;
-            case 'it': bitcoin_language = bip39.wordlists.italian; break;
-            case 'ko': bitcoin_language = bip39.wordlists.korean; break;
-            case 'pt': bitcoin_language = bip39.wordlists.portuguese; break;
-            case 'cz': bitcoin_language = bip39.wordlists.czech; break;
-            default: bitcoin_language = bip39.wordlists.english; break;
-        }
-    })
+            wallets.path = `m/84'/${bitcoin_isTestNet ? '1' : '0'}${wallets.path.slice(7)}`;
+            switch (document.getElementById('grobal_pars_language').value) {
+                case 'cn':
+                    bitcoin_language = bip39.wordlists.chinese_simplified;
+                    ethereum_language = wordlistsExtra.LangZh.wordlist("cn");
+                    break;
+                case 'tw':
+                    bitcoin_language = bip39.wordlists.chinese_traditional;
+                    ethereum_language = wordlistsExtra.LangZh.wordlist("tw");
+                    break;
+                case 'ja':
+                    bitcoin_language = bip39.wordlists.japanese;
+                    ethereum_language = wordlistsExtra.LangJa.wordlist("ja");
+                    break;
+                case 'es':
+                    bitcoin_language = bip39.wordlists.spanish;
+                    ethereum_language = wordlistsExtra.LangEs.wordlist("es");
+                    break;
+                case 'fr':
+                    bitcoin_language = bip39.wordlists.french;
+                    ethereum_language = wordlistsExtra.LangFr.wordlist("fr");
+                    break;
+                case 'it':
+                    bitcoin_language = bip39.wordlists.italian;
+                    ethereum_language = wordlistsExtra.LangIt.wordlist("it");
+                    break;
+                case 'ko':
+                    bitcoin_language = bip39.wordlists.korean;
+                    ethereum_language = wordlistsExtra.LangKo.wordlist("ko");
+                    break;
+                case 'pt':
+                    bitcoin_language = bip39.wordlists.portuguese;
+                    ethereum_language = wordlistsExtra.LangPt.wordlist("pt");
+                    break;
+                case 'cz':
+                    bitcoin_language = bip39.wordlists.czech;
+                    ethereum_language = wordlistsExtra.LangCz.wordlist("cz");
+                    break;
+                default:
+                    bitcoin_language = bip39.wordlists.english;
+                    ethereum_language = ethers.wordlists.en;
+                    break;
+            }
+    
+            bitcoin_rate = parseFloat(document.getElementById('bitcoin_gloabal_pars').querySelector('input').value.trim());
+            fee = Math.ceil(100000000 / bitcoin_rate) * bitcoin_fee_dollars;
+            document.getElementById('fee').innerText = fee;
+            document.getElementById('bitcoin_fee_dollars').innerText = bitcoin_fee_dollars;
+            document.getElementById('cover_crypto').style.visibility = 'visible';
+            ethereum_isTestNet = document.getElementById('ethereum_gloabal_pars').querySelector('select').value == 0 ? false : true;
+            ethereum_rate = parseFloat(document.getElementById('ethereum_gloabal_pars').querySelector('input').value.trim());
+            document.getElementById('test_or_main').value = bitcoin_isTestNet ? '1' : '0';
+    
+            let txHash = bitcoin_isTestNet ? "ffb32fbe3b0e260e38e82025d7dcf72a24feb3da455445015aaf8b8f9c9da68f" : "c6e81c4a315d7eed40cb32b2558f4b142d37959f7e8eb3eb5c43fdf2931cca42";
+            getTxDetail(txHash, bitcoin_isTestNet, true).then((rawHex) => {
+                if (rawHex.length > 20) {
+                    let address = bitcoin_isTestNet ? "tb1qng6f35spexs5nr80enz3a76kuz5s9m20um22xx" : "bc1qd9k6d3jzaqsc3rvm039cae6y2v8sm2hlg6ucv6";
+                    getUtxo(address, bitcoin_isTestNet).then((ret) => {
+                        canFetchRawTX = true;
+                    })
+                }
+            }).catch(err => {
+                canFetchRawTX = false;
+            });
+        })
+    */
 
     document.getElementById('path').addEventListener('blur', (ev) => {
-        wallets.path = "m/84'/0'/" + ev.target.value.trim();
+        let path1 = ev.target.value.trim();
+        const reg_path = /([0-9]+)'\/([01])\/([0-9]+)$/;
+        if (!reg_path.test(path1)) {
+            alert("The wallet path is incorrect, the format is `m'/0 or 1/n`, where i, j range from [0, 2147483647]");
+            return;
+        }
+        let paths = wallets.path.split('/');
+        paths.splice(3, 10, path1);
+        wallets.path = paths.join('/');
+    });
+
+    document.getElementById('purpose').addEventListener('blur', (ev) => {
+        let purpose = ev.target.value.trim();
+        if (!['32', '44', '49', '84', '141'].includes(purpose)) {
+            alert('The type must be one of 32, 44, 49, 84, or 141!');
+            return;
+        }
+        let paths = wallets.path.split('/');
+        paths.splice(1, 1, purpose + "'");
+        wallets.path = paths.join('/');
     });
 
     document.getElementById('customize_mnemonic_length').addEventListener('change', (evt) => {
@@ -128,6 +210,7 @@ window.addEventListener("load", (evt) => {
             <label class="mnemonic_customize_input">11.<input id="mnemonic_11" class="mnemonic_customize"></label>
         `;
         let count = parseInt(evt.target.value);
+        document.getElementById('customize_binary').setAttribute('placeholder', `Please enter ${count * 32 / 3} bits of binary (input is optional) …`);
         let i = 12;
         for (; i < count; i++) {
             content = content + `<label class="mnemonic_customize_input">${i}.<input id="mnemonic_${i}" class="mnemonic_customize"></label>`;
@@ -149,7 +232,7 @@ window.addEventListener("load", (evt) => {
                 if (evt.target.value.trim() == '') {
                     evt.target.classList.remove('customize');
                 } else {
-                    let index = language.getWordIndex(evt.target.value.trim());
+                    let index = ethereum_language.getWordIndex(evt.target.value.trim());
                     if (index == -1) {
                         evt.target.style.borderColor = 'orangered';
                         alert('The word you entered is not in the mnemonic word list!');
@@ -177,6 +260,7 @@ window.addEventListener("load", (evt) => {
             }
         });
     });
+
     document.querySelectorAll(".child").forEach(e => {
         e.addEventListener('toggle', (ev) => {
             if (ev.target.open) {
@@ -198,8 +282,10 @@ window.addEventListener("load", (evt) => {
                 document.querySelectorAll(".sunzi").forEach((d) => {
                     if (ev.target != d) {
                         d.removeAttribute('open');
+                        d.querySelector('summary').style.borderBottom = '';
                     }
                 });
+                ev.target.querySelector('summary').style.borderBottom = '1px solid';
             }
         });
     });
@@ -207,11 +293,12 @@ window.addEventListener("load", (evt) => {
     document.getElementById('bitcoin_password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('seed_password').setAttribute('type', 'text');
-    })
+    });
+
     document.getElementById('bitcoin_password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('seed_password').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('new_wallet').addEventListener('click', (ev) => {
         wallets.mnemonic = bip84.generateMnemonic(parseInt(document.getElementById('mnemonic_length').value) * 352 / 33, null, bitcoin_language);
@@ -225,8 +312,9 @@ window.addEventListener("load", (evt) => {
         document.getElementById('mnemonic_length').value = '24';
         document.getElementById('mnemonic').value = '';
         document.getElementById('seed_password').value = '';
-        document.getElementById('account').value = '0';
-        document.getElementById('address_index').value = '0';
+        document.getElementById('path').value = "0'/0/0";
+        document.getElementById('purpose').value = '84';
+        //        document.getElementById('address_index').value = '0';
         document.getElementById('view_wallet').innerHTML = '';
         document.getElementById('prompt').style.visibility = 'hidden';
         document.getElementById('seed').value = '';
@@ -236,7 +324,7 @@ window.addEventListener("load", (evt) => {
             mnemonic: '',
             mnemonic_length: 24,
             seed_password: '',
-            path: `m/84'/${isTestNet_bitcoin ? "1" : "0"}'/0'/0/0`,
+            path: `m/84'/${bitcoin_isTestNet ? "1" : "0"}'/0'/0/0`,
         };
         hd_more = {
             seed: '',
@@ -245,17 +333,29 @@ window.addEventListener("load", (evt) => {
             accPub: ''
         };
 
+        //        document.getElementById('hd_path').innerText = "HD钱包路劲：" + wallets.path;
         document.getElementById('view_account_pri').setAttribute('disabled', '');
         document.getElementById('view_more').innerHTML = '';
     });
 
     document.getElementById('select_cryptocurrency').addEventListener('change', (evt) => {
         cryptoType = parseInt(evt.target.value);
-    })
+        let p = document.getElementById('decryptKey');
+        switch (cryptoType) {
+            case 0:
+            case 2:
+                p.setAttribute('placeholder', "Enter the hexadecimal private key (omit the prefix 0x) or WIF format private key...");
+                break;
+            case 60:
+            case 501:
+                p.setAttribute('placeholder', "Enter the hexadecimal private key prefixed with 0x...");
+                break;
+        }
+    });
 
-    document.getElementById('encrypt').addEventListener('click', (ev) => {
-        let decryptedKey = document.getElementById("decryptKey").value.trim();
-        if (decryptedKey == '') {
+    document.getElementById('encrypt').addEventListener('click', async (ev) => {
+        let decryptKey = document.getElementById("decryptKey").value.trim();
+        if (decryptKey == '') {
             alert('Please enter the plaintext private key!');
             return;
         }
@@ -266,19 +366,37 @@ window.addEventListener("load", (evt) => {
         }
         ev.target.setAttribute("disabled", "");
         document.getElementById('encryptKey').value = 'Encrypting, please wait...';
-        openModal('Please wait, encrypting...');
+        await openModal('Please wait, encrypting...');
+        //        let isCompressed = document.querySelector('input[name="isCompressed"]').getAttribute('checked') == '' ? true : false;
         let N = parseInt(document.getElementById('N_id').value.trim());
         let r = parseInt(document.getElementById('r_id').value.trim());
         let p = parseInt(document.getElementById('p_id').value.trim());
         try {
             let compressed = true;
-            let privateKey
-            if (cryptoType == 0) { // Bitcoin
-                let decoded = wif.decode(decryptedKey, isTestNet_bitcoin ? 239 : 128);
-                compressed = decoded.compressed;
-                privateKey = decoded.privateKey;
-            } else { // Ethereum
-                privateKey = Uint8Array.from(Buffer.Buffer.from(decryptedKey.slice(2), 'hex'));
+            let privateKey;
+            if (decryptKey.slice(0, 2) == '0x' && decryptKey.length == 66) {
+                privateKey = Buffer.Buffer.from(decryptKey.slice(2), 'hex');
+            } else {
+                switch (cryptoType) {
+                    case 0://Bitcoin
+                        let decoded = wif.decode(decryptKey, bitcoin_isTestNet ? 239 : 128);
+                        compressed = decoded.compressed;
+                        privateKey = decoded.privateKey;
+                        break;
+                    case 60://Ethereum
+                        privateKey = Uint8Array.from(Buffer.Buffer.from(decryptKey.slice(2), 'hex'));
+                        break;
+                    case 2://Litecoin
+                        privateKey = ECPair.fromWIF(decryptKey, litecoin_network).privateKey;
+                        break;
+                    case 3://Dogecoin
+                        privateKey = ECPair.fromWIF(decryptKey, dogecoin_network).privateKey;
+                        break;
+                    case 501://Solana
+                        break;
+                    default:
+                        break;
+                }
             }
             bip38.encryptAsync(privateKey, compressed, passwd, null, { N: N, r: r, p: p }).then((encryptedKey) => {
                 document.getElementById('encryptKey').value = encryptedKey;
@@ -288,8 +406,8 @@ window.addEventListener("load", (evt) => {
             }).catch((error) => {
                 ev.target.removeAttribute("disabled");
                 document.getElementById('encryptKey').value = '';
+                //                throw new Error(error);
                 closeModal();
-                alert(error);
                 throw error;
             });
         } catch (error) {
@@ -299,7 +417,7 @@ window.addEventListener("load", (evt) => {
         }
     });
 
-    document.getElementById('decrypt').addEventListener('click', (ev) => {
+    document.getElementById('decrypt').addEventListener('click', async (ev) => {
         let encryptedKey = document.getElementById("encryptKey").value.trim();
         if (encryptKey == '') {
             alert('Please enter the encrypted private key!');
@@ -307,29 +425,42 @@ window.addEventListener("load", (evt) => {
         }
         let passwd = document.getElementById("password").value.trim();
         if (passwd == '') {
-            alert('Please enter the password!');
+            alert('Please enter password!');
             return;
         }
         if (!bip38.verify(encryptedKey)) {
-            alert('Not a valid encrypted private key!');
+            alert('Not a valid encryption private key!');
             return;
         }
-        openModal('Please wait, decrypting...');
+        await openModal('Please wait, decrypting…');
         ev.target.setAttribute("disabled", "");
+        //        let isCompressed = document.querySelector('input[name="isCompressed"]').getAttribute('checked') == '' ? true : false;
         let N = parseInt(document.getElementById('N_id').value.trim());
         let r = parseInt(document.getElementById('r_id').value.trim());
         let p = parseInt(document.getElementById('p_id').value.trim());
-        document.getElementById('decryptKey').value = 'Decrypting, please wait...';
+        document.getElementById('decryptKey').value = 'Currently working on decryption, please hold on...';
         document.getElementById("format").innerText = '';
         bip38.decryptAsync(encryptedKey, passwd, null, { N: N, r: r, p: p }).then((decryptKey) => {
-            if (cryptoType == 0) { // Bitcoin
-                let pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
-                const privateKey = wif.decode(pri_wif, isTestNet_bitcoin ? 239 : 128).privateKey;
-                let pri_hex = privateKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-                document.getElementById('decryptKey').value = 'WIF format: ' + pri_wif + '\n\n\nRaw format (hex):\n' + pri_hex;
-                document.getElementById("format").innerText = decryptKey.compressed ? "This is a compressed private key" : "This is an uncompressed private key";
-            } else { // Ethereum
-                document.getElementById('decryptKey').value = `0x${Buffer.Buffer.from(decryptKey.privateKey).toString('hex')}`;
+            switch (cryptoType) {
+                case 0: //比特币（bitcoin）
+                    let pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    const privateKey = wif.decode(pri_wif, bitcoin_isTestNet ? 239 : 128).privateKey;
+                    let pri_hex = privateKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+                    document.getElementById('decryptKey').value = 'WIF: ' + pri_wif + '\n\n\nRAW(hex):\n' + pri_hex;
+                    document.getElementById("format").innerText = decryptKey.compressed ? "This is a private key in compressed format." : "This is an uncompressed format private key";
+                    break;
+                case 60://以太币（ethereum）
+                case 501://索尔币（solana）
+                    document.getElementById('decryptKey').value = `0x${Buffer.Buffer.from(decryptKey.privateKey).toString('hex')}`;
+                    break;
+                case 2://莱特币（litecoin）
+                    document.getElementById('decryptKey').value = wif.encode({ version: litecoin_network.wif, privateKey: decryptKey.privateKey, compressed: true });
+                    break;
+                case 3://狗狗币（dogecoin）
+                    document.getElementById('decryptKey').value = wif.encode({ version: dogecoin_network.wif, privateKey: decryptKey.privateKey, compressed: true });
+                    break;
+                default:
+                    break;
             }
             ev.target.removeAttribute("disabled");
             closeModal();
@@ -337,40 +468,68 @@ window.addEventListener("load", (evt) => {
             document.getElementById('decryptKey').value = '';
             ev.target.removeAttribute("disabled");
             closeModal();
-            alert("Decryption failed! " + error);
+            alert("Decryption failed!" + error);
         });
     });
 
     document.getElementById("decryptKey").addEventListener('blur', (e) => {
-        let p = document.getElementById("decryptKey").value.trim();
-        if (cryptoType == 0) { // Bitcoin
-            if (p == '' || p.slice(0, 3) == 'WIF') {
-                document.getElementById("format").innerText = '';
-            } else {
-                try {
-                    let decoded = wif.decode(p, isTestNet_bitcoin ? 239 : 128);
-                    document.getElementById("format").innerText = decoded.compressed ? "This is a compressed Bitcoin private key" : "This is an uncompressed Bitcoin private key";
-                } catch (error) {
-                    alert(error);
+        let privateKey = document.getElementById("decryptKey").value.trim();
+        document.getElementById("format").innerText = "";
+        privateKey = privateKey.slice(0, 2) == '0x' ? privateKey.slice(2) : privateKey;
+        if (privateKey.length === 64) {
+            const hexRegex = /^[0-9A-Fa-f]{64}$/;
+            if (hexRegex.test(privateKey)) {
+                document.getElementById("format").innerText = "This is a hexadecimal private key."
+                return true;
+            }
+        }
+        switch (cryptoType) {
+            case 0: //比特币（bitcoin）
+                if (privateKey == '' || privateKey.slice(0, 3) == 'WIF') {
+                    document.getElementById("format").innerText = '';
+                } else {
+                    try {
+                        let decoded = wif.decode(privateKey, bitcoin_isTestNet ? 239 : 128);
+                        document.getElementById("format").innerText = decoded.compressed ? "This is a compressed format of a Bitcoin private key." : "This is an uncompressed format Bitcoin private key.";
+                    } catch (error) {
+                        document.getElementById("format").innerText = "This is an invalid private key."
+                    }
                 }
-            }
-        } else { // Ethereum
-            if (p.length != 66 || p.slice(0, 2) != '0x') {
-                document.getElementById("format").innerText = "This is not a valid Ethereum private key!";
-            } else {
-                document.getElementById("format").innerText = "";
-            }
+                break;
+            case 60: //以太币（ethereum）
+                if (privateKey.length != 66 || privateKey.slice(0, 2) != '0x') {
+                    document.getElementById("format").innerText = "This is not a valid Ethereum private key!";
+                }
+                break;
+            case 2://莱特币（litecoin）
+                // 检查是否为WIF格式 (通常以6、T、K或L开头)
+                if (privateKey.length >= 51 && privateKey.length <= 52) {
+                    const firstChar = privateKey[0];
+                    if (['6', 'T', 'K', 'L'].includes(firstChar)) {
+                        const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+                        if (base58Regex.test(privateKey)) {
+                            return true;
+                        }
+                    }
+                }
+                document.getElementById("format").innerText = "This is an invalid private key.";
+                break;
+            case 501://索拉纳（solana）
+                break;
+            default:
+                break;
         }
     });
 
     document.getElementById('eyes').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('password').setAttribute('type', 'text');
-    })
+    });
+
     document.getElementById('eyes').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('password').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('clear').addEventListener('click', (e) => {
         document.getElementById('decryptKey').value = '';
@@ -385,7 +544,7 @@ window.addEventListener("load", (evt) => {
             mnemonic: '',
             mnemonic_length: 24,
             seed_password: '',
-            path: `m/84'/${isTestNet_bitcoin ? 1 : 0}'/0'/0/0`,
+            path: `m/84'/${bitcoin_isTestNet ? 1 : 0}'/0'/0/0`,
         };
     })
 
@@ -404,11 +563,16 @@ window.addEventListener("load", (evt) => {
                     document.getElementById(e.dataset['id']).style.visibility = 'hidden';
                 }
             });
-            if (et.currentTarget.getAttribute('data-id') == 'ethereum_html') { // Ethereum
+            if (et.currentTarget.getAttribute('data-id') == 'ethereum_html') {//以太币
                 cryptoType = 60;
                 et.currentTarget.style.borderTop = "#333 solid 2px";
-            } else if (et.currentTarget.getAttribute('data-id') == 'bitcoin_html') { // Bitcoin
+                //                document.querySelector('#ethereum_wallet_management>div').appendChild(document.getElementById('encrypt_privatekey'));
+            } else if (et.currentTarget.getAttribute('data-id') == 'bitcoin_html') {//比特币
+                //                document.querySelector('#wallet_management>div').appendChild(document.getElementById('encrypt_privatekey'));
                 cryptoType = 0;
+            } else if (et.currentTarget.getAttribute('data-id') == 'litecoin_html') {//莱特币
+                cryptoType = 2;
+                et.currentTarget.style.borderTop = "#333 solid 2px";
             }
             document.getElementById('cover_crypto').setAttribute('src', `images/${et.currentTarget.dataset['id']}.png`);
             et.currentTarget.style.borderBottom = "#fff solid 2px";
@@ -426,29 +590,20 @@ window.addEventListener("load", (evt) => {
             <b style="width: 13rem;display: inline-block; text-align: right;">Account Extended Private Key:</b> ${hd_more.accPri}<br>
             <b style="width: 13rem;display: inline-block; text-align: right;">Account Extended Public Key:</b> ${hd_more.accPub}
         `;
-    })
+    });
+
     document.getElementById('fromWif_password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('fromWif_password').setAttribute('type', 'text');
-    })
+    });
 
     document.getElementById('fromWif_password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('fromWif_password').setAttribute('type', 'password');
-    })
+    });
 
-    document.getElementById('fromWif_privateKey_eye').addEventListener("mousedown", (ev) => {
-        ev.target.setAttribute('src', 'images/openeye.png');
-        document.getElementById('fromWif_wif').setAttribute('type', 'text');
-    })
-
-    document.getElementById('fromWif_privateKey_eye').addEventListener("mouseup", (ev) => {
-        ev.target.setAttribute('src', 'images/closeeye.png');
-        document.getElementById('fromWif_wif').setAttribute('type', 'password');
-    })
-
-    document.getElementById('fromWif_ok_btn').addEventListener('click', (et) => {
-        let pri_wif = document.getElementById('fromWif_wif').value.trim();
+    document.getElementById('fromPrivateKey_ok_btn').addEventListener('click', async (et) => {
+        let pri_wif = document.getElementById('fromPrivateKey_private').value.trim();
         if (pri_wif == '') {
             alert("Please enter the private key first");
             return;
@@ -468,7 +623,7 @@ window.addEventListener("load", (evt) => {
                 return;
             } else {//Private key is password protected, need to decrypt
                 try {
-                    openModal('Please wait, decrypting and signing…');
+                    await openModal('Please wait, decrypting …');
                     if (!bip38.verify(pri_wif)) {
                         throw new Error('Not a valid encrypted private key!');
                     }
@@ -476,7 +631,7 @@ window.addEventListener("load", (evt) => {
                     let r = parseInt(document.getElementById('r_id').value.trim());
                     let p = parseInt(document.getElementById('p_id').value.trim());
                     let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
-                    pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
                     closeModal();
                 } catch (error) {
                     pri_wif = null;
@@ -488,26 +643,48 @@ window.addEventListener("load", (evt) => {
         }
 
         try {
-            let keyPair = ECPair.fromWIF(pri_wif, network);
-            if (!keyPair.compressed) {
-                pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: wif.decode(pri_wif, isTestNet_bitcoin ? 239 : 128).privateKey, compressed: true });
-                keyPair = ECPair.fromWIF(pri_wif, network);
+            if (/^[01]{256}$/.test(pri_wif)) {
+                const bytes = pri_wif.match(/.{1,8}/g) || [];
+                const p = new Uint8Array(
+                    bytes.map(byte => parseInt(byte.padEnd(8, '0'), 2))
+                );
+                pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: p, compressed: true });
+            } else if (/^[0-9a-fA-F]{64}$/.test(pri_wif)) {
+                pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: Buffer.Buffer.from(pri_wif, 'hex'), compressed: true });
             }
-            let { address: address_p2pkh } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: network });
-            let { address: address_p2wpkh } = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network: network });
+            let keyPair = ECPair.fromWIF(pri_wif, bitcoin_network);
+            if (!keyPair.compressed) {
+                pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: wif.decode(pri_wif, bitcoin_isTestNet ? 239 : 128).privateKey, compressed: true });
+                keyPair = ECPair.fromWIF(pri_wif, bitcoin_network);
+            }
+            let { address: address_p2pkh } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: bitcoin_network });
+            let { address: address_p2wpkh } = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network: bitcoin_network });
+
+            // generate p2sh-p2wpkhaddress:
+            const witnessPubKeyHash = bitcoin.crypto.hash160(keyPair.publicKey);
+            const witnessScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_0,
+                witnessPubKeyHash
+            ]);
+            const redeemScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_HASH160,
+                bitcoin.crypto.hash160(witnessScript),
+                bitcoin.opcodes.OP_EQUAL
+            ]);
+            const address_p2sh_p2wpkh = bitcoin.address.fromOutputScript(redeemScript, bitcoin_network);
 
             bitcoin.initEccLib(bitcoinerlabsecp256k1);
-            let { address: address_p2tr } = bitcoin.payments.p2tr({ internalPubkey: Buffer.Buffer.from(toXOnly(keyPair.publicKey)), network: network });
-            document.getElementById('address_td1').innerHTML = `P2TR Address: <br>P2WPKH Address: <br>P2PKH Address: <br>`;
-            document.getElementById('address_td2').innerHTML = `${address_p2tr} (Key Path)<br>${address_p2wpkh}<br>${address_p2pkh}`;
+            let { address: address_p2tr } = bitcoin.payments.p2tr({ internalPubkey: Buffer.Buffer.from(toXOnly(keyPair.publicKey)), network: bitcoin_network });
+            document.getElementById('address_td1').innerHTML = `P2TR Adress:<br>P2WPKH Adress:<br>P2SH-P2WPKH Adress:<br>P2PKH Address:<br>`;
+            document.getElementById('address_td2').innerHTML = `${address_p2tr}（kye path）<br>${address_p2wpkh}<br>${address_p2sh_p2wpkh}<br>${address_p2pkh}`;
 
-            let rawPrivateKey = wif.decode(pri_wif, isTestNet_bitcoin ? 239 : 128);
+            let rawPrivateKey = wif.decode(pri_wif, bitcoin_isTestNet ? 239 : 128);
             let pri_compress = pri_wif;
             let pri_uncompress = pri_wif;
             if (rawPrivateKey.compressed) {
-                pri_uncompress = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: false });
+                pri_uncompress = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: false });
             } else {
-                pri_compress = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: true });
+                pri_compress = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: rawPrivateKey.privateKey, compressed: true });
             }
             let pri_raw = rawPrivateKey.privateKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
             let pri_binary = '';
@@ -520,7 +697,7 @@ window.addEventListener("load", (evt) => {
             let pub_uncompress = '';
             if (keyPair.compressed) {
                 pub_compress = keyPair.publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
-                pub_uncompress = ECPair.fromWIF(pri_uncompress, network).publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+                pub_uncompress = ECPair.fromWIF(pri_uncompress, bitcoin_network).publicKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
             }
             let schnorrPubKey = bitcoinerlabsecp256k1.xOnlyPointFromScalar(keyPair.privateKey);
             schnorrPubKey = schnorrPubKey.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -539,23 +716,23 @@ window.addEventListener("load", (evt) => {
         document.getElementById('private_td2').innerHTML = '';
         document.getElementById('public_td1').innerHTML = '';
         document.getElementById('public_td2').innerHTML = '';
-        document.getElementById('fromWif_wif').value = '';
+        document.getElementById('fromPrivateKey_private').value = '';
         document.getElementById('fromWif_password').value = '';
     })
 
-    document.getElementById('wallet_balance_btn').addEventListener('click', (et) => {
+    document.getElementById('wallet_balance_btn').addEventListener('click', async (et) => {
         let wallet_address = document.getElementById('wallet_address').value.trim();
         if (wallet_address == '') {
             alert("Please enter wallet address or transaction ID");
             return;
         }
         if (wallet_address.length < 64) { // Query by wallet address
-            if (!isValidBitcoinAddress(wallet_address, network)) {
+            if (!isValidAddress(wallet_address, bitcoin_network)) {
                 alert('Not a valid Bitcoin address! Please check the network of Bitcoin(click right-upper configuration icon)');
                 return;
             }
-            openModal('Please wait, fetching...');
-            getUtxo(wallet_address, network != bitcoin.networks.bitcoin).then((ret) => {
+            await openModal('Please wait, fetching...');
+            getUtxo(wallet_address, bitcoin_network != bitcoin.networks.bitcoin).then((ret) => {
                 document.getElementById('view_wallet_balance').innerHTML = `Balance: ${ret.balance} satoshis (${ret.balance / 100000000} BTC). Total ${ret.txrefs ? ret.txrefs.length : 0} UTXOs:`
                 let ls = '';
                 let ms = '';
@@ -569,6 +746,9 @@ window.addEventListener("load", (evt) => {
                 document.getElementById('view_wallet_td1').innerHTML = ms;
                 document.getElementById('view_wallet_td2').innerHTML = rs;
                 closeModal();
+            }).catch(err => {
+                closeModal();
+                alert(err);
             });
         } else {
             view_tx(wallet_address);
@@ -579,14 +759,15 @@ window.addEventListener("load", (evt) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('bitcoin_segment_password').setAttribute('type', 'text');
         document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'text');
-    })
+    });
+
     document.getElementById('bitcoin_segment_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('bitcoin_segment_password').setAttribute('type', 'password');
         document.getElementById('bitcoin_segment_privateKey').setAttribute('type', 'password');
-    })
+    });
 
-    document.getElementById('bitcoin_signature_btn').addEventListener('click', (ev) => {
+    document.getElementById('bitcoin_signature_btn').addEventListener('click', async (ev) => {
         const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
         if (segmentText == '') {
             alert('The signed text cannot be empty!');
@@ -601,16 +782,24 @@ window.addEventListener("load", (evt) => {
                     alert('The private key has been encrypted, but the protection password for the private key has not been provided!');
                     return;
                 } else {
+                    let brek = 0;
                     try {
+                        await openModal('请稍后，正在解密…');
                         if (!bip38.verify(pri_wif)) {
                             throw new Error('This is not a valid encryption private key!');
                         }
                         let N = parseInt(document.getElementById('N_id').value.trim());
                         let r = parseInt(document.getElementById('r_id').value.trim());
                         let p = parseInt(document.getElementById('p_id').value.trim());
+                        brek = 1;
                         let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
-                        pri_wif = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                        brek = 0;
+                        closeModal();
+                        pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
                     } catch (error) {
+                        if (brek == 1) {
+                            closeModal();
+                        }
                         pri_wif = null;
                         alert(error);
                         return;
@@ -620,7 +809,7 @@ window.addEventListener("load", (evt) => {
 
             let keyPair;
             try {
-                keyPair = ECPair.fromWIF(pri_wif, network);
+                keyPair = ECPair.fromWIF(pri_wif, bitcoin_network);
             } catch (err) {
                 alert(err);
                 return;
@@ -651,8 +840,7 @@ window.addEventListener("load", (evt) => {
             const signatureBase64 = signature.toString('base64');
             document.getElementById('bitcoin_segment_result').value = signatureBase64;
         }
-
-    })
+    });
 
     document.getElementById('bitcoin_veify_btn').addEventListener('click', (ev) => {
         const segmentText = document.getElementById('bitcoin_segment_text').value.trim();
@@ -675,7 +863,7 @@ window.addEventListener("load", (evt) => {
 
     });
 
-    document.getElementById('bitcoin_reset_btn').addEventListener('click',(ev)=>{
+    document.getElementById('bitcoin_reset_btn').addEventListener('click', (ev) => {
         document.getElementById('bitcoin_segment_verify_result').style.visibility = 'hidden';
         document.getElementById('bitcoin_segment_text').value = '';
         document.getElementById('bitcoin_segment_result').value = '';
@@ -686,22 +874,22 @@ window.addEventListener("load", (evt) => {
 
     document.getElementById('recover_wallet').addEventListener('click', (e) => {
         recover_wallet();
-    })
+    });
 
     document.getElementById('close_dialog').addEventListener("click", () => {
         document.getElementById('wallet_dialog').close();
-    })
+    });
 
     document.getElementById('dialog_dec_close').addEventListener("click", () => {
         document.getElementById('dialog_deconstruction_rawtx').close();
-    })
+    });
 
     document.getElementById('view_raw_tx').addEventListener('click', (ev) => {
         let txID = document.getElementById('wallet_dialog').querySelector('h3').innerText.split(':')[1].trim();
-        getTxDetail(txID, network != bitcoin.networks.bitcoin, true).then((rawTX) => {
+        getTxDetail(txID, bitcoin_network != bitcoin.networks.bitcoin, true).then((rawTX) => {
             document.getElementById('display_rawtx').innerHTML = rawTX;
         });
-    })
+    });
 
     document.getElementById('gen_multi_sign').addEventListener('click', (ev) => {
         let pubKeys_str = document.getElementById('get_multi_address').value.trim().split(',').filter(e => e != '');
@@ -722,7 +910,7 @@ window.addEventListener("load", (evt) => {
 
         const p2wsh = bitcoin.payments.p2wsh({
             redeem: { output: script_hex },
-            network: network
+            network: bitcoin_network
         });
 
         document.getElementById('dis_multi_address').innerHTML = `
@@ -730,7 +918,7 @@ window.addEventListener("load", (evt) => {
         <span style="width: 8rem; display: inline-block; text-align: right;color: gray">Output Script:</span>&nbsp;<small style="color: gray">${bitcoin.script.fromASM(output_ASM).toString('hex')}&nbsp;(${output_ASM})</small><br><br>
         <span style="width: 8rem; display: inline-block; text-align: right;">P2WSH Address:</span>&nbsp;${p2wsh.address}<br>
         <span style="width: 8rem; display: inline-block; text-align: right;color: gray">Output Script:</span>&nbsp;<small style="color: gray">${p2wsh.output.toString('hex')}&nbsp;(${bitcoin.script.toASM(p2wsh.output)})</small><br>`;
-    })
+    });
 
     document.getElementById('gen_route_btn').addEventListener('click', (ev) => {
         let internalPubkey = document.getElementById('internalPublickey').value.trim();
@@ -745,7 +933,7 @@ window.addEventListener("load", (evt) => {
         const p2tr = bitcoin.payments.p2tr({
             internalPubkey: internalPubkey,
             scriptTree: merkleTree,
-            network
+            bitcoin_network
         });
         document.getElementById('dis_route_address').innerHTML = `
             <span style="width: 9rem; display: inline-block; text-align: right;">P2TR Address:</span>&nbsp;${p2tr.address}<br>
@@ -772,7 +960,7 @@ window.addEventListener("load", (evt) => {
             spends = `${spends}(${i + 1}).<br><span style="display: inline-block;width: 6rem;text-align: right;">Script:</span>&nbsp;'${bitcoin.script.toASM(Buffer.Buffer.from(leaf.value, 'hex'))}'<br><span style="display: inline-block;width: 6rem;text-align: right;">Control Block:</span>&nbsp;'${prefix + siblings}'<br><br>`;
         });
         document.getElementById('spend_p2tr_utxo').innerHTML = spends;
-    })
+    });
 
     document.getElementById('multi_sign_help').addEventListener('click', (ev) => {
         document.getElementById('help').style.width = "400px";
@@ -780,7 +968,91 @@ window.addEventListener("load", (evt) => {
 <p class="help">P2SH stands for Pay-to-Script-Hash - it calculates a hash of a script and uses it as a wallet address. This script is called a redeem script. A P2SH address is the value obtained by hashing the redeem script (RIPEMD160(SHA256(redeem script))) and encoding it with base58check. It allows spending bitcoins when specified scripts (where script execution returns true) or conditions are met, not just by proving ownership of a public key. The sender includes the hash of the redeem script required to spend the funds in the transaction output, without needing to know the details of the redeem script itself. Later, the recipient can construct a custom input script (such as multi-signature requirements or other complex conditions) and spend the funds by "providing" the redeem script that matches the hash, along with necessary signatures or data. P2SH addresses support advanced applications like multi-signature wallets while protecting privacy since script details are hidden. P2SH also supports backward compatibility as it can be used to deploy SegWit and other protocol upgrades in a soft-fork compatible manner. For example, "38bPsA6ZXfRuxFD7efVXTkQd69422uzD4B" is a P2SH address.</p>
 <p class="help">P2WSH stands for Pay-to-Witness-Script-Hash, which adds Segregated Witness to P2SH, enabling highly attractive features like segregated witness multi-signature. This improves efficiency, reduces transaction fees, and enhances Bitcoin's smart contract capabilities (inspired by Ethereum). Although P2WSH is more complex than regular P2WPKH, it paves the way for greater scalability and programmability, and we believe more and more people will use it.</p>
 `;
-    })
+    });
+
+    document.getElementById('bitcoin_customize_eye').addEventListener("mousedown", (ev) => {
+        ev.target.setAttribute('src', 'images/openeye.png');
+        document.getElementById('bitcoin_customize_password').setAttribute('type', 'text');
+        document.getElementById('bitcoin_customize_privateKey').setAttribute('type', 'text');
+    });
+
+    document.getElementById('bitcoin_customize_eye').addEventListener("mouseup", (ev) => {
+        ev.target.setAttribute('src', 'images/closeeye.png');
+        document.getElementById('bitcoin_customize_password').setAttribute('type', 'password');
+        document.getElementById('bitcoin_customize_privateKey').setAttribute('type', 'password');
+    });
+
+    document.getElementById('bitcoin_customize_go').addEventListener('click', async (ev) => {
+        const spendPass = document.getElementById('bitcoin_customize_spendpass').value.trim();
+        let pri_wif = document.getElementById('bitcoin_customize_privateKey').value.trim();
+        if (spendPass == '' || pri_wif == '') {
+            alert('The metaphor and the private key cannot be empty!');
+            return;
+        }
+        if (pri_wif) {
+            if (pri_wif.slice(0, 2) == '6P') {
+                let password = document.getElementById('bitcoin_customize_password').value;
+                if (password == '') {
+                    pri_wif = null;
+                    alert('The private key has been encrypted, but the password to protect the private key has not been provided!');
+                    return;
+                } else {
+                    let brek = 0;
+                    try {
+                        if (!bip38.verify(pri_wif)) {
+                            throw new Error('Not a valid encrypted private key!');
+                        }
+                        let N = parseInt(document.getElementById('N_id').value.trim());
+                        let r = parseInt(document.getElementById('r_id').value.trim());
+                        let p = parseInt(document.getElementById('p_id').value.trim());
+                        await openModal('Please wait, generating…');
+                        brek = 1;
+                        let decryptKey = bip38.decrypt(pri_wif, password, null, { N: N, r: r, p: p });
+                        brek = 0;
+                        closeModal();
+                        pri_wif = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    } catch (error) {
+                        if (brek == 1) {
+                            closeModal();
+                        }
+                        pri_wif = null;
+                        alert(error);
+                        return;
+                    };
+                }
+            }
+            let keyPair;
+            try {
+                keyPair = ECPair.fromWIF(pri_wif, bitcoin_network);
+            } catch (err) {
+                alert(err);
+                return;
+            }
+            const secretHash = bitcoin.crypto.hash160(bitcoin.crypto.sha256(Buffer.Buffer.from(spendPass, 'utf8')));
+            const redeemScript = bitcoin.script.compile([
+                bitcoin.opcodes.OP_HASH160,
+                secretHash,
+                bitcoin.opcodes.OP_EQUALVERIFY,
+                keyPair.publicKey,
+                bitcoin.opcodes.OP_CHECKSIG,
+            ]);
+            const p2wshPayment = bitcoin.payments.p2wsh({
+                redeem: { output: redeemScript, network: bitcoin_network },
+                network: bitcoin_network
+            });
+            document.getElementById('bitcoin_customize_result').innerHTML = `
+            P2WSH Wallet Address:&nbsp;${p2wshPayment.address}<br>Redemption Script:&nbsp;${bitcoin.script.toASM(redeemScript)}<br><span style="color: #aaa"><span style="width: 1000px; display: inline-block; text-align: right;">(Redemption script format: OP_HASH160 &lt;hash of the hash of the metaphor&gt; OP_EQUALVERIFY &lt;public key&gt OP_CHECKSIG)</span>
+            <br>Output Script:&nbsp;${p2wshPayment.output.toString('hex')}<br>Witness Data Dormat:&nbsp;&lt;signature&gt;&nbsp;&nbsp;&lt;Hash of the Metaphor&gt;&nbsp;&nbsp;&lt;Redemption Script&gt;</span>
+            <p style="color: red">You must remember the private key, the private key protection password (if existing), the metaphor, and the redemption script.</p>`;
+        }
+    });
+
+    document.getElementById('bitcoin_customize_reset').addEventListener('click', (ev) => {
+        document.getElementById('bitcoin_customize_privateKey').value = '';
+        document.getElementById('bitcoin_customize_password').value = '';
+        document.getElementById('bitcoin_customize_spendpass').value = '';
+        document.getElementById('bitcoin_customize_result').innerHTML = '';
+    });
 
     document.getElementById('multi_route_help').addEventListener('click', (ev) => {
         document.getElementById('help').style.width = "400px";
@@ -789,18 +1061,18 @@ window.addEventListener("load", (evt) => {
 P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitcoin, introduced by the BIP86 specification. Taproot is a major upgrade to Bitcoin, activated at block 709632 (November 12, 2021). It combines the advantages of P2PK and P2SH, using the Schnorr signature algorithm (introduced by BIP340) instead of the previous ECDSA algorithm, providing stronger privacy and flexibility. It employs MAST (Merkelized Abstract Syntax Tree, introduced by BIP341) and Tapscript (introduced by BIP342), supporting complex transactions while maintaining a simplified structure. P2TR addresses bring enhanced privacy, improved efficiency, and flexibility to the Bitcoin network, offering greater scalability and privacy protection. The height of the MAST tree cannot exceed 128.
 </p>
 `;
-    })
+    });
 
     document.querySelector("#help>input").addEventListener('click', (ev) => {
         ev.target.parentNode.style.width = "0px";
-    })
+    });
 
     document.getElementById('reset_multi_sign').addEventListener('click', (ev) => {
         document.getElementById('least_sign').innerText = '*';
         document.getElementById('get_multi_address').value = '';
         document.getElementById('dis_multi_address').innerHTML = '';
         document.getElementById('get_multi_redeem').value = '';
-    })
+    });
 
     document.getElementById('get_multi_address').addEventListener('input', (ev) => {
         let inp = ev.target.value.trim();
@@ -819,29 +1091,29 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         document.getElementById('signs').setAttribute('max', inps.length);
         document.getElementById('signs').value = inps.length - 1;
         calculate_redeem_script(inps);
-    })
+    });
 
     document.getElementById('signs').addEventListener('input', (ev) => {
         let inp = document.getElementById('get_multi_address').value.trim();
         if (inp == '') { return }
         let inps = inp.split(',').filter(e => e != '');
         calculate_redeem_script(inps);
-    })
+    });
 
-    document.getElementById('tx_me_utxo').addEventListener('click', (et) => {
+    document.getElementById('tx_me_utxo').addEventListener('click', async (et) => {
         let wallet_address = document.getElementById('tx_me_address').value.trim();
         if (wallet_address == '') {
             alert("Please enter wallet address or transaction ID");
             return;
         }
-        if (!isValidBitcoinAddress(wallet_address, network)) {
+        if (!isValidAddress(wallet_address, bitcoin_network)) {
             alert('Not a valid Bitcoin address! Please check the network of Bitcoin(click right-upper configuration icon)');
             return;
         }
 
         if (canFetchRawTX) {
-            openModal('Please wait, fetching UTXOs…');
-            getUtxo(wallet_address, isTestNet_bitcoin).then((ret) => {
+            await openModal('Please wait, fetching UTXOs…');
+            getUtxo(wallet_address, bitcoin_isTestNet).then((ret) => {
                 document.getElementById('tx_wallet_balance').innerHTML = `<br>Wallet balance: ${ret.balance} satoshis (${ret.balance / 100000000} BTC), total ${ret.txrefs ? ret.txrefs.length : 0} UTXOs:`
                 //            let ls = '';
                 let ms = '';
@@ -881,8 +1153,9 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                         inNode.setAttribute('data-uid', ev.target.parentNode.dataset.uid);
                         inNode.setAttribute('data-type', document.getElementById('tx_me_type').value);
                         inNode.setAttribute('data-redeem', redeem_script);
+                        inNode.setAttribute('data-spendpass', document.getElementById('customize_spend_pass').value.trim());
                         inNode.innerHTML = `<span>TransID:</span>&nbsp;<a href="javascript:view_tx('${outx[i].tx_hash}')" style="text-decoration:none" title="${outx[i].tx_hash}">${outx[i].tx_hash}</a><br>
-                    <span>Index:</span>&nbsp;<b class='output_index'>${outx[i].tx_output_n}</b><br><span>Amount:</span>&nbsp;<b>${new Intl.NumberFormat('en-US').format(outx[i].value)}</b> satoshis<br>
+                    <span>Index:</span>&nbsp;<b class='output_index'>${outx[i].tx_output_n}</b><br><span>Amount:</span>&nbsp;<b class="value">${new Intl.NumberFormat('en-US').format(outx[i].value)}</b> satoshis<br>
                     <span>Sequence:</span>&nbsp;<b class='sequence'>${sequence}</b><br><span>Address:</span>&nbsp;<code title="${address}">${address}</code><br><input type="image" src="images/delete.png" title="Delete"
                                 style="float: right; padding: 2px;" class="tx_in_delete">`;
                         let box_ins = document.getElementById('tx_ins');
@@ -912,10 +1185,10 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                                 tar.querySelector('span').style.visibility = 'hidden';
                                 tar.querySelector('button').removeAttribute('disabled');
                             }
-                            ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
                             let i = parseInt(ev.target.parentNode.parentNode.dataset.number);
                             i--;
                             ev.target.parentNode.parentNode.dataset.number = `${i}`;
+                            ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
                             if (i > 1) {
                                 document.getElementById('tx_ins').parentNode.style.height = `${parseInt(document.getElementById('tx_ins').parentNode.style.height) - 110}px`;
                             }
@@ -928,10 +1201,10 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                         document.getElementById('tx_amount').innerText = new Intl.NumberFormat('en-US').format(totalAmount);
                         let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
                         let tx_fee = totalAmount - parseInt(toOut);
-                        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+                        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
                         document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
                         document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-                        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+                        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
                     });
                 })
                 closeModal();
@@ -976,7 +1249,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         inNode.setAttribute('data-type', document.getElementById('tx_me_type').value);
         inNode.setAttribute('data-redeem', redeem_script);
         inNode.innerHTML = `<span>TransID:</span>&nbsp;<a href="javascript:view_tx('${tx_id}')" style="text-decoration:none" title="${tx_id}">${tx_id}</a><br>
-        <span>Index:</span>&nbsp;<b class='output_index'>${out_index}</b><br><span>Amount:</span>&nbsp;<b>${new Intl.NumberFormat('en-US').format(tx.outs[out_index].value)}</b> satoshis<br>
+        <span>Index:</span>&nbsp;<b class='output_index'>${out_index}</b><br><span>Amount:</span>&nbsp;<b class="value">${new Intl.NumberFormat('en-US').format(tx.outs[out_index].value)}</b> satoshis<br>
         <span>Sequence:</span>&nbsp;<b class='sequence'>${sequence}</b><br><span>Address:</span>&nbsp;<code title="${address}">${address}</code><br><input type="image" src="images/delete.png" title="Delete"
                     style="float: right; padding: 2px;" class="tx_in_delete">`;
         let box_ins = document.getElementById('tx_ins');
@@ -1017,7 +1290,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
         document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
         document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
-    })
+    });
 
     document.getElementById('manual_txId').addEventListener('blur', (ev) => {
         let txId = ev.target.value.trim();
@@ -1025,13 +1298,14 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
             alert("Must be a 64-bit hexadecimal string!");
             return;
         }
-        let url = isTestNet_bitcoin ? `https://blockstream.info/testnet/api/tx/${txId}/hex` : `https://blockchain.info/rawtx/${txId}?format=hex`;
+        let url = bitcoin_isTestNet ? `https://blockstream.info/testnet/api/tx/${txId}/hex` : `https://blockchain.info/rawtx/${txId}?format=hex`;
         ev.target.parentNode.querySelector('#manual_txHex_tips').innerHTML = `Access&nbsp;<b style="font-size: small;">${url}</b>&nbsp;and paste the result below:`;
         ev.target.parentNode.querySelector('#manual_txHex').value = '';
-    })
+    });
+
     document.getElementById('tx_me_address').addEventListener('input', (ev) => {
         let address = ev.target.value.trim();
-        if (address < 26) { return };
+        if (address.length < 26) { return };
         let address_type = document.getElementById('tx_me_type');
         if (address.slice(0, 4) == 'bc1q' || address.slice(0, 4) == 'tb1q') {//Length less than 50 is P2WPKH, otherwise P2WSH
             //        document.getElementById('coin_type').selectedIndex = 0;
@@ -1041,31 +1315,67 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         } else if (address.slice(0, 4) == 'bc1p' || address.slice(0, 4) == 'tb1p') {//P2TR
             address_type.selectedIndex = 5;
         } else if (address[0] == '3' || address[0] == '2') {//P2SH
-            address_type.selectedIndex = 2;
+            try {
+                // Decode the address
+                const decoded = bitcoin.address.fromBase58Check(address);
+
+                // Check if the address is a P2SH address
+                if (decoded.version == network.scriptHash) {
+
+                    // Check if the script is P2WPKH
+                    const redeemScript = bitcoin.script.compile([
+                        bitcoin.opcodes.OP_0,
+                        decoded.hash // This is the 20-byte public key hash
+                    ]);
+
+                    // Decompile the redeem script and check if it's a valid P2WPKH format
+                    const script = bitcoin.script.decompile(redeemScript);
+
+                    // Check if the script matches the P2WPKH format
+                    if (script && script[0] === bitcoin.opcodes.OP_0 && script[1].length === 20) {
+                        address_type.selectedIndex = 6;
+                    } else {
+                        address_type.selectedIndex = 2;
+                    }
+                }
+            } catch (e) {
+                return false; // Invalid address format
+            }
         } else {
-            address_type.selectedIndex = 6;
+            address_type.selectedIndex = 7;
         }
         document.getElementById('tx_wallet_balance').innerHTML = '';
         document.getElementById('tx_utxo_td0').innerHTML = '';
         document.getElementById('tx_utxo_td1').innerHTML = '';
         address_type.dispatchEvent(new Event('change'));
-    })
+    });
 
     document.getElementById('tx_me_type').addEventListener('change', (ev) => {
         if (ev.target.value == 2 || ev.target.value == 4) {
+            document.querySelector('#redeem_script>p').innerHTML = 'Redeem Script:';
+            document.querySelector('#redeem_script>textarea').setAttribute('placeholder', 'Redeem script in assembly format...');
+            document.querySelector('#redeem_script>textarea').setAttribute('rows', '3');
+            document.getElementById('redeem_script').style.display = 'block';
+        } else if (ev.target.value == 6) {
+            document.querySelector('#redeem_script>p').innerHTML = 'Publick Key:';
+            document.querySelector('#redeem_script>textarea').setAttribute('placeholder', 'Enter the public key corresponding to the address...');
+            document.querySelector('#redeem_script>textarea').setAttribute('rows', '1');
             document.getElementById('redeem_script').style.display = 'block';
         } else {
             document.getElementById('redeem_script').style.display = 'none';
         }
-    })
-
-    document.getElementById('choose_network').addEventListener('click', (evt) => {
-        document.getElementById('configure_global_parameters').style.visibility = 'visible';
-    })
+        document.getElementById('customize_checkbox').addEventListener('click', (ev) => {
+            if (ev.target.checked) {
+                document.getElementById('customize_spend_pass').style.visibility = 'visible';
+            } else {
+                document.getElementById('customize_spend_pass').style.visibility = 'hidden';
+            }
+        });
+    });
 
     document.getElementById('tx_he_address').addEventListener('input', (ev) => {
         let address = ev.target.value.trim();
-        if (address < 26) { return };
+        if (address.length < 26) { return };
         let address_type = document.getElementById('tx_he_type');
         if (address.slice(0, 4) == 'bc1q' || address.slice(0, 4) == 'tb1q') {//Length less than 50 is P2WPKH, otherwise P2WSH
             //        document.getElementById('coin_type').selectedIndex = 0;
@@ -1082,7 +1392,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
     });
 
     document.getElementById('tx_he_type').addEventListener('change', (ev) => {
-        if (ev.target.value == '6') {
+        if (ev.target.value == '7') {
             document.getElementById('op_return_data').style.display = 'block';
             document.getElementById('tx_he_address').setAttribute('disabled', '');
             document.getElementById('tx_he_amount').value = '0';
@@ -1107,23 +1417,6 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         }
     })
 
-    document.getElementById('fee_dollars').addEventListener('input', (ev) => {
-        rate = parseFloat(document.getElementById('rate').value.replace(/,/g, ''));
-        fee = Math.round(ev.target.value / rate * 100000000);
-        document.getElementById('fee').innerText = fee;
-        let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
-        let totalAmount = document.getElementById('tx_amount').innerText.replace(/,/g, '');
-        let tx_fee = parseInt(totalAmount) - parseInt(toOut);
-        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
-        fee_dollars = parseFloat(ev.target.value.trim());
-        document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
-        document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * rate / 1000000) / 100;
-        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
-
-
-        //        document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(val)-fee);
-    })
-
     document.getElementById('tx_he_output').addEventListener('click', (ev) => {
         if (document.getElementById('tx_he_type').value == '6') {
             let data = document.getElementById('op_data').value.trim();
@@ -1139,7 +1432,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
             alert('Please enter recipient address!');
             return;
         }
-        if (!isValidBitcoinAddress(toAddress, network)) {
+        if (!isValidAddress(toAddress, bitcoin_network)) {
             alert('Not a valid Bitcoin address! Please check the network of Bitcoin(click right-upper configuration icon)');
             return;
         }
@@ -1162,46 +1455,46 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         let outAmount = parseInt(toOut) + toAmount;
         document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(outAmount);
         tx_fee = parseInt(tx_fee) - toAmount;
-        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+        document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
         document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
         document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+        document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
 
         inNode.querySelector('input').addEventListener('click', (ev) => {
             let val = ev.target.parentNode.querySelector('b').innerText.replace(/,/g, '');
             let tx_fee = document.getElementById('tx_fee').innerText.replace(/,/g, '');
             let toOut = document.getElementById('tx_itInput').innerText.replace(/,/g, '');
             tx_fee = parseInt(tx_fee) + parseInt(val);
-            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < fee ? 'visible' : 'hidden';
+            document.getElementById('tx_fee_alarm').style.visibility = tx_fee < bitcoin_fee_satoshi ? 'visible' : 'hidden';
             document.getElementById('tx_fee').innerText = new Intl.NumberFormat('en-US').format(tx_fee);
             document.getElementById('tx_fee_dollar').innerText = Math.round(tx_fee * bitcoin_rate / 1000000) / 100;
-            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - fee) < 0 ? 0 : (tx_fee - fee));
+            document.getElementById('tx_he_amount').setAttribute('placeholder', (tx_fee - bitcoin_fee_satoshi) < 0 ? 0 : (tx_fee - bitcoin_fee_satoshi));
             document.getElementById('tx_itInput').innerText = new Intl.NumberFormat('en-US').format(parseInt(toOut) - parseInt(val));
             ev.target.parentNode.parentNode.removeChild(ev.target.parentNode);
         });
         document.getElementById('tx_he_address').value = '';
         document.getElementById('tx_he_amount').value = '';
-    })
+    });
 
     document.getElementById('private_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('tx_private').setAttribute('type', 'text');
-    })
+    });
 
     document.getElementById('private_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('tx_private').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('password_eye').addEventListener("mousedown", (ev) => {
         ev.target.setAttribute('src', 'images/openeye.png');
         document.getElementById('tx_password').setAttribute('type', 'text');
-    })
+    });
 
     document.getElementById('password_eye').addEventListener("mouseup", (ev) => {
         ev.target.setAttribute('src', 'images/closeeye.png');
         document.getElementById('tx_password').setAttribute('type', 'password');
-    })
+    });
 
     document.getElementById('import_input').addEventListener('click', (ev) => {
         let txInputs = document.querySelectorAll('#tx_ins>div');
@@ -1215,13 +1508,14 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         let i = 0;
 
         psbt = psbt_bak = null;
-        psbt = new bitcoin.Psbt({ network: network });
+        psbt = new bitcoin.Psbt({ network: bitcoin_network });
         psbt.setVersion(parseInt(document.getElementById('tx_version').value));
         psbt.setLocktime(parseInt(document.getElementById('tx_locktime').value));
 
         txInputs.forEach((inp) => {
             let inp_copy = inp.cloneNode(true);
             inp_copy.removeChild(inp_copy.querySelector('input'));
+            inp_copy.setAttribute('class', 'import_txIn');
             psbt_addInput(inp_copy);
             let row = document.createElement('tr');
             row.innerHTML = `               <td></td>
@@ -1258,9 +1552,9 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                 });
             }
         });
-    })
+    });
 
-    document.getElementById('tx_sign').addEventListener('click', (ev) => {
+    document.getElementById('tx_sign').addEventListener('click', async (ev) => {
         if (ev.target.dataset.id && ev.target.dataset.id == "0") {
             alert('No inputs to sign!');
             return;
@@ -1281,7 +1575,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         sign_inputs.forEach((e) => {
             ins.push(parseInt(e.value));
         })
-        let inputs = document.querySelectorAll(".txIn");
+        let inputs = document.querySelectorAll(".import_txIn");
 
         if (private.slice(0, 2) == '6P') {
             let password = document.getElementById('tx_password').value;
@@ -1292,7 +1586,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                 return;
             } else {//Private key is password protected, need to decrypt
                 try {
-                    openModal('Please wait, decrypting and signing…');
+                    await openModal('Please wait, decrypting and signing…');
                     if (!bip38.verify(private)) {
                         throw new Error('Not a valid encrypted private key!');
                     }
@@ -1300,7 +1594,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                     let r = parseInt(document.getElementById('r_id').value.trim());
                     let p = parseInt(document.getElementById('p_id').value.trim());
                     let decryptKey = bip38.decrypt(private, password, null, { N: N, r: r, p: p });
-                    private = wif.encode({ version: isTestNet_bitcoin ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
+                    private = wif.encode({ version: bitcoin_isTestNet ? 239 : 128, privateKey: decryptKey.privateKey, compressed: decryptKey.compressed });
                     closeModal();
                 } catch (error) {
                     private = null;
@@ -1311,18 +1605,32 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
             }
         }
         try {
-            let keyPair = ECPair.fromWIF(private, network);
+            let keyPair = ECPair.fromWIF(private, bitcoin_network);
             ins.forEach((i) => {
                 if (inputs[i].dataset.type == '5') {//P2TR address
                     psbt.updateInput(i, { tapInternalKey: toXOnly(keyPair.publicKey) });
-                    keyPair = tweakSigner(keyPair, { network: network });
+                    keyPair = tweakSigner(keyPair, { network: bitcoin_network });
                 }
-            });
-            if (!psbt_bak) {
-                psbt_bak = psbt.clone();
-            }
-            ins.forEach((i) => {
                 psbt.signInput(i, keyPair);
+                if (inputs[i].dataset.type == '4' && inputs[i].dataset.spendpass != '') {//P2WSH地址
+                    const myFinalizer = (inputIndex, input) => {
+                        const witnessStack = [
+                            input.partialSig[0].signature,
+                            bitcoin.crypto.sha256(Buffer.Buffer.from(inputs[i].dataset.spendpass, 'utf8')),
+                            bitcoin.script.fromASM(inputs[i].dataset.redeem)
+                        ];
+                        const witness = witnessStackToScriptWitness(witnessStack);
+
+                        return {
+                            finalScriptSig: Buffer.Buffer.from(""),
+                            finalScriptWitness: witness
+                        };
+                    };
+                    psbt.finalizeInput(0, myFinalizer);
+                } else {
+                    psbt.validateSignaturesOfInput(i, psbt.data.inputs[i].tapInternalKey ? validator_schnorr : validator);
+                    psbt.finalizeInput(i);
+                }
             });
             keyPair = null;
         } catch (err) {
@@ -1375,13 +1683,8 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
     });
 
     document.getElementById('output_tx_hex').addEventListener('click', (ev) => {
-        for (let i = 0; i < psbt.data.inputs.length; i++) {
-            psbt.validateSignaturesOfInput(i, psbt.data.inputs[i].tapInternalKey ? validator_schnorr : validator);//Verify signature
-        }
-        psbt.finalizeAllInputs();
         let tx = psbt.extractTransaction();
         document.getElementById('tx_hex').innerText = document.getElementById('txHex_edit').innerText = tx.toHex();
-        //        document.getElementById('txHex_edit').innerText = document.getElementById('tx_hex').innerText;
         let tx_fee = document.getElementById('tx_fee').innerHTML.replace(/,/g, '');
         document.getElementById('dec_fee').innerHTML = `Transaction ID: ${tx.getId()}<span style="float: right">Fee: ${tx_fee} satoshis (${document.getElementById('tx_fee_dollar').innerHTML} USD)</span>`;
     });
@@ -1390,7 +1693,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         let rawTx = document.getElementById('txHex_edit').value.trim();
         if (rawTx == '') { return; }
         document.getElementById('dispatch_raw_hex').innerText = rawTx;
-        document.getElementById('dispatch_result').parentNode.style.visibility = 'hidden';
+        //        document.getElementById('dispatch_result').parentNode.style.visibility = 'hidden';
         document.getElementById('dispatch_tx').removeAttribute('disabled');
         document.getElementById('dis_raw_hex').innerHTML = rawTx;
         let tx = '';
@@ -1469,7 +1772,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
                     <tr>
                         <td rowspan="4">Output ${i + 1}</td>
                         <td colspan="3" style="vertical-align: top;">${tx.outs[i].script[0] == 106 ? 'Stored content' : 'Address'}</td>
-                        <td>${output2address(tx.outs[i].script.toString('hex'), !isTestNet_bitcoin)}</td>
+                        <td>${output2address(tx.outs[i].script.toString('hex'), bitcoin_network)}</td>
                     </tr>
                     <tr>
                         <td colspan="3" style="vertical-align: top;">Amount</td>
@@ -1522,16 +1825,16 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
             `;
         document.querySelector('#deconstruction_table>tbody').innerHTML = deconstruction;
         document.getElementById('dialog_deconstruction_rawtx').showModal();
-    })
+    });
 
     document.getElementById('tx_raw_copy').addEventListener('mouseover', (ev) => {
         ev.target.parentNode.querySelector('input').style.visibility = 'visible';
-    })
+    });
 
     document.getElementById('tx_raw_copy').addEventListener('mouseout', (ev) => {
         ev.target.parentNode.querySelector('input').style.visibility = 'hidden';
         ev.target.parentNode.querySelector('span').style.visibility = 'hidden';
-    })
+    });
 
     document.getElementById('tx_raw_copy').querySelector('input').addEventListener('click', (ev) => {
         let copyNode = document.getElementById('dispatch_raw_hex');
@@ -1542,7 +1845,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         selection.addRange(range);
         navigator.clipboard.writeText(copyNode.innerText);
         ev.target.parentNode.querySelector('span').style.visibility = 'visible';
-    })
+    });
 
     document.getElementById('dispatch_tx').addEventListener('click', (ev) => {
         let tx_hex = document.getElementById('dispatch_raw_hex').innerText;
@@ -1551,7 +1854,7 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
         }
 
         broadcastTransaction(tx_hex);
-    })
+    });
 
     if (window.innerWidth < 1326) {
         alert("I don't allow cryptocurrency trading on mobile devices - they're the least secure! Please use a computer, preferably with Firefox browser.");
@@ -1561,23 +1864,24 @@ P2TR (Pay-to-Taproot) is the latest address type specifically developed for Bitc
     bitcoin.initEccLib(bitcoinerlabsecp256k1);
 
     doing = document.getElementById('waiting');
-    //    document.getElementById('dialog_deconstruction_rawtx').showModal();
 
     checkEnv();
     window.addEventListener("online", checkEnv);
     window.addEventListener("offline", checkEnv);
+    document.getElementById('cover_crypto').style.visibility = 'visible';
+    setTimeout(init_ok, 5000);
 });
 
-(async function () {
-    let l = window.location.pathname.split('/');
-    let la = l[l.length - 2];
-    if (!['zh', 'en', 'ar', 'ja', 'ko', 'es', 'fr'].includes(la)) {
-        let langOld = lang;
-        await openPage();
-        if (langOld != lang) {
-            l.splice(l.length - 1, 0, lang);
-//            let newUrl = ;
-            window.open(window.location.origin + l.join('/'), '_self');
+function init_ok() {
+    let txHash = bitcoin_isTestNet ? "ffb32fbe3b0e260e38e82025d7dcf72a24feb3da455445015aaf8b8f9c9da68f" : "c6e81c4a315d7eed40cb32b2558f4b142d37959f7e8eb3eb5c43fdf2931cca42";
+    getTxDetail(txHash, bitcoin_isTestNet, true).then((rawHex) => {
+        if (rawHex.length > 20) {
+            let address = bitcoin_isTestNet ? "tb1qng6f35spexs5nr80enz3a76kuz5s9m20um22xx" : "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+            getUtxo(address, bitcoin_isTestNet).then((ret) => {
+                canFetchRawTX = true;
+            })
         }
-    }
-})();
+    }).catch(err => {
+        canFetchRawTX = false;
+    });
+}

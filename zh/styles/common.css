@@ -1,20 +1,26 @@
 body {
     margin: 0px;
-    background-color: #777;
+    background-color: #666;
 }
 
 .container {
     height: 97vh;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-template-rows: 80px minmax( calc( 100vh - 120px ), max-content) 40px;
+    grid-template-rows: 80px minmax(calc(100vh - 120px), max-content) 40px;
 }
 
 /*header中的样式*/
 header {
     grid-column: span 12;
     background-color: lightblue;
-} 
+    position: relative;
+}
+
+header>a:hover {
+    text-decoration: underline !important;
+    text-decoration-color: #CCC;
+}
 
 .head {
     width: 66px;
@@ -68,17 +74,31 @@ figure>img {
 /*main中的样式*/
 main {
     grid-column: span 11;
-    background-color: #777;
-    margin-left: 10px;
+    background-color: #666;
     position: relative;
 }
 
 .parent {
-    box-shadow: 0px -1px 2px #eee, 0px 1px 2px #222;
+    box-shadow: 0px -1px 2px #F0F0F0, 0px 1px 2px #222;
+    margin-bottom: 6px;
+    border-radius: 4px;
 }
 
 .parent[open]>summary {
     list-style-image: url("../../images/open.png");
+}
+
+.parent>summary {
+    color: white;
+    padding: 0.5rem 1rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    list-style-image: url('../images/close.png');
+    height: 30px;
+}
+
+.parent>summary:hover {
+    background-color: #7f7f7f;
 }
 
 .parent>div {
@@ -88,6 +108,35 @@ main {
     transition: max-height 2s ease;
 }
 
+.config {
+    max-height: 100px;
+    color: gold;
+    padding: 16px;
+    text-align: center;
+}
+
+.config span {
+    margin-right: 100px;
+}
+
+.config span {
+    margin-right: 60px;
+}
+
+.config select {
+    color: gold;
+    text-align: center;
+    border-style: none;
+    border-bottom: 1px solid #BBB;
+    background-color: transparent;
+    outline-style: none;
+    padding: 0 10px;
+}
+
+.config option {
+    color: black;
+}
+
 .child>summary {
     background-color: #333333;
     padding: 6px 1rem;
@@ -95,22 +144,65 @@ main {
     margin-bottom: 1px;
     font-size: 1.2rem;
     font-weight: 600;
+    list-style-type: none;
 }
 
-.child>div {
+.child>summary:hover {
+    background-color: #555555;
+}
+
+.child>summary::before {
+    content: '\2795 ';
+}
+
+.child[open]>summary::before {
+    content: "\2796 ";
+}
+
+summary {
+    cursor: pointer;
+}
+
+.child>.main {
     border-left: 1px dotted #DDD;
     border-right: 1px dotted #DDD;
     background-color: #FDFDFD;
     padding: 1rem;
 }
 
-#wallet {
+.details_help {
+    background-color: #DDD;
+    padding: 2px 10px;
+    border-bottom: 1px solid #BBB;
+    max-height: 120px;
+    overflow-y: scroll;
+}
+
+.details_help>details>summary {
+    list-style-image: url("../../images/close1.png");
+}
+
+.details_help>details[open]>summary {
+    list-style-image: url("../../images/open1.png");
+    border-bottom: 1px solid #BBB;
+}
+
+.wallet1 {
+    position: relative;
+    border: 1px dotted #DDD;
+    background-color: #FDFDFD;
+    padding: 3rem;
+    /*    overflow: hidden;
+    transition: height 1s ease-out;*/
+}
+
+.wallet2 {
     height: 660px;
     background-image: url(../images/wallet.png);
-    /*    background-size: contain;*/
     background-size: auto 500px;
     background-repeat: no-repeat;
-    margin: 2rem;
+    background-origin: content-box;
+    /*    transition: height 1s ease-out;*/
 }
 
 #security {
@@ -119,16 +211,6 @@ main {
     background-size: contain;
     background-repeat: no-repeat;
     margin: 2rem 1rem 4rem;
-}
-
-.parent>summary {
-    color: white;
-    padding: 0.5rem 1rem;
-    margin: 4px;
-    font-size: 1.5rem;
-    font-weight: 700;
-    list-style-image: url('../images/close.png');
-    height: 30px;
 }
 
 .help {
@@ -155,7 +237,10 @@ main {
     padding: 4px;
 }
 
-.txIn, .txOut {
+.txIn,
+.txOut,
+.dogecoin_txIn,
+.litecoin_txIn {
     background-color: #CCC;
     width: 320px;
     border-radius: 10px;
@@ -169,10 +254,18 @@ main {
     margin: 10px auto;
 }
 
-.txIn>span {
+.txIn>span,
+.dogecoin_txIn>span,
+.litecoin_txIn>span {
     display: inline-block;
     width: 3.4rem;
     text-align: right;
+}
+
+.import_txIn,
+.dogecoin_import_txIn
+.litecoin_import_txIn {
+    word-break: break-all;
 }
 
 .signed {
@@ -187,9 +280,15 @@ main {
     text-align: center;
 }
 
-#sign_table th, #sign_table td{
+#sign_table th,
+#sign_table td,
+#dogecoin_sign_table th,
+#dogecoin_sign_table td,
+#litecoin_sign_table th,
+#litecoin_sign_table td {
     border: 1px solid gray;
 }
+
 .choosed>input {
     width: 1.2rem;
     height: 1.2rem;
@@ -203,5 +302,5 @@ main {
 
 footer {
     grid-column: span 1;
-/*    background-color: lightblue;*/
+    /*    background-color: lightblue;*/
 }
